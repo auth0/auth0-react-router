@@ -1,0 +1,112 @@
+{
+  "name": "@auth0/auth0-react-router",
+  "version": "0.1.0",
+  "description": "Auth0 SDK for React Router v7 applications",
+  "keywords": [
+    "auth0",
+    "react",
+    "react-router",
+    "authentication",
+    "authorization",
+    "oidc",
+    "login"
+  ],
+  "homepage": "https://github.com/auth0/auth0-react-router#readme",
+  "bugs": {
+    "url": "https://github.com/auth0/auth0-react-router/issues"
+  },
+  "license": "MIT",
+  "author": "Auth0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/auth0/auth0-react-router.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./client": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "browser": null,
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs"
+    },
+    "./routes": {
+      "browser": null,
+      "types": "./dist/routes/index.d.ts",
+      "import": "./dist/routes/index.js",
+      "require": "./dist/routes/index.cjs"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "import": "./dist/errors/index.js",
+      "require": "./dist/errors/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest --coverage",
+    "lint": "eslint src __tests__",
+    "lint:security": "eslint --no-config-lookup --config eslint.security.config.js src",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@auth0/auth0-api-js": "^1.6.1",
+    "@auth0/auth0-server-js": "^1.9.0",
+    "cookie": "^1.0.2"
+  },
+  "devDependencies": {
+    "@auth0/auth0-spa-js": "^2.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9.0.0",
+    "eslint-plugin-security": "^3.0.0",
+    "happy-dom": "^20.10.6",
+    "prettier": "^3.0.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "@auth0/auth0-spa-js": ">=2.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "react-router": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@auth0/auth0-spa-js": {
+      "optional": true
+    }
+  }
+}
