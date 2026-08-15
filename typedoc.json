@@ -1,0 +1,25 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/client/index.ts",
+    "src/server/index.ts",
+    "src/routes/index.ts",
+    "src/errors/index.ts",
+    "src/types/index.ts",
+    "src/testing/index.ts"
+  ],
+  "out": "./docs/",
+  "readme": "./README.md",
+  "name": "@auth0/auth0-react-router",
+  "exclude": [
+    "**/__tests__/**/*",
+    "**/node_modules/**/*"
+  ],
+  "excludeExternals": false,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "hideGenerator": true,
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}

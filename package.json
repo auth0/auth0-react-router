@@ -75,6 +75,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf ./dist",
+    "docs": "typedoc",
     "test": "vitest run --coverage",
     "test:watch": "vitest --coverage",
     "lint": "eslint src __tests__",
@@ -104,6 +105,7 @@
     "react-dom": "^19.2.7",
     "react-router": "^8.3.0",
     "tsup": "^8.5.1",
+    "typedoc": "^0.28.0",
     "typescript": "~5.9.3",
     "vitest": "^4.1.10"
   },

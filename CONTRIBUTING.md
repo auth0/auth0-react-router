@@ -16,6 +16,7 @@ Please read [Auth0's contribution guidelines](https://github.com/auth0/open-sour
 - `npm run clean`: remove compiled artifacts
 - `npm run lint`: run the linter
 - `npm run typecheck`: run TypeScript type checking
+- `npm run docs`: generate API docs
 
 ## Testing
 
