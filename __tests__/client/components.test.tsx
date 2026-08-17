@@ -100,6 +100,25 @@ describe('RequireAuth', () => {
     );
     expect(loginWithRedirect).toHaveBeenCalledWith({ returnTo: '/dashboard' });
   });
+
+  it('defaults returnTo to current pathname and search when not provided', () => {
+    const loginWithRedirect = vi.fn();
+    const ctx = createMockAuth0Context({
+      session: null,
+      isAuthenticated: false,
+      loginWithRedirect
+    });
+    render(
+      <Auth0Context.Provider value={ctx}>
+        <RequireAuth>
+          <span>x</span>
+        </RequireAuth>
+      </Auth0Context.Provider>
+    );
+    expect(loginWithRedirect).toHaveBeenCalledWith({
+      returnTo: window.location.pathname + window.location.search
+    });
+  });
 });
 
 // ─── RequireRole ──────────────────────────────────────────────────────────────
