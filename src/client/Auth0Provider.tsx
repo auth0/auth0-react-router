@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate, useSubmit, useRouteLoaderData } from 'react-router';
+import { useNavigate, useRouteLoaderData } from 'react-router';
 import { Auth0Context } from './auth0-context.js';
 import type {
   Auth0ContextValue,
@@ -19,9 +19,6 @@ export interface Auth0ProviderProps {
  * Reads the session from the root loader — no network calls in the browser.
  */
 function SsrAuth0Provider({ children }: Auth0ProviderProps) {
-  const navigate = useNavigate();
-  const submit = useSubmit();
-
   // rootAuthLoader must be the loader for the 'root' route.
   // The session key holds { user } — no tokens.
   const rootData = useRouteLoaderData('root') as
@@ -30,30 +27,35 @@ function SsrAuth0Provider({ children }: Auth0ProviderProps) {
   const session = rootData?.session ?? null;
   const user = session?.user ?? null;
 
-  // Stable callbacks: navigate and submit are already stable references from
-  // React Router, so these only change if the router itself changes (never in
-  // practice). Stability is critical because loginWithRedirect is listed in
-  // RequireAuth's useEffect deps — an unstable reference would re-trigger the
-  // redirect effect on every root re-render caused by a navigation.
+  // Full page navigation — must not use React Router's navigate() because:
+  // 1. The /auth/login loader returns a 302 redirect to Auth0 (external URL).
+  // 2. It sets a transaction cookie via Set-Cookie that client-side fetch ignores.
+  // window.location.href forces a real browser request so cookies and redirects
+  // are handled correctly by the browser.
   const loginWithRedirect = useCallback(
     ({ returnTo }: { returnTo?: string } = {}) => {
-      navigate(
-        returnTo
-          ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
-          : '/auth/login'
-      );
+      window.location.href = returnTo
+        ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
+        : '/auth/login';
     },
-    [navigate]
+    []
   );
 
+  // Programmatic form POST — logout must be POST (GET logout can be triggered
+  // by third-party image tags or links, silently logging users out).
+  // A real form submission ensures the browser follows the 302 to Auth0's
+  // /v2/logout and processes the Set-Cookie that clears the session.
   const logout = useCallback(
     ({ returnTo }: { returnTo?: string } = {}) => {
-      const action = returnTo
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = returnTo
         ? `/auth/logout?returnTo=${encodeURIComponent(returnTo)}`
         : '/auth/logout';
-      submit({}, { method: 'post', action });
+      document.body.appendChild(form);
+      form.submit();
     },
-    [submit]
+    []
   );
 
   // Not available in SSR mode. Deferred to Phase 2 (Token Mediating).
