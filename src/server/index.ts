@@ -13,7 +13,6 @@ export {
   handleLogout,
   handleBackchannelLogout,
   handleAuth,
-  auth0Routes,
   stripIdTokenClaims
 } from './handlers.js';
 export type {
