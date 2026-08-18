@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_AUTH0_AUDIENCE?: string;
   readonly VITE_AUTH0_SCOPE?: string;
   readonly VITE_AUTH0_USE_REFRESH_TOKENS?: string;
+  readonly VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK?: string;
   readonly VITE_AUTH0_CACHE_LOCATION?: string;
 }
 

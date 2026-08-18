@@ -121,6 +121,7 @@ function SpaAuth0Provider({ children }: Auth0ProviderProps) {
             domain: import.meta.env.VITE_AUTH0_DOMAIN as string,
             clientId: import.meta.env.VITE_AUTH0_CLIENT_ID as string,
             useRefreshTokens: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS !== 'false',
+            useRefreshTokensFallback: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK === 'true',
             cacheLocation: (import.meta.env.VITE_AUTH0_CACHE_LOCATION as 'memory' | 'localstorage') ?? 'localstorage',
             authorizationParams: {
               redirect_uri:
@@ -169,8 +170,9 @@ function SpaAuth0Provider({ children }: Auth0ProviderProps) {
         let u = await client.getUser<Auth0User>();
         if (!u) {
           // On page refresh the in-memory cache is empty. getTokenSilently()
-          // uses the stored refresh token (localstorage) or Auth0's SSO session
-          // to silently re-authenticate and repopulate the cache.
+          // uses the stored refresh token to silently re-authenticate and
+          // repopulate the cache. If useRefreshTokensFallback is enabled it
+          // will also fall back to Auth0's SSO session (silent iframe).
           try {
             await client.getTokenSilently();
             u = await client.getUser<Auth0User>();
