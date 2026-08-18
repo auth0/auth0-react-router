@@ -4,7 +4,6 @@ import {
   ConfigurationError,
   InsufficientScopeError
 } from '../errors/index.js';
-import { getInstance } from './utils.js';
 import type { JWTClaims } from '../types/index.js';
 
 // ─── Test injection ───────────────────────────────────────────────────────────
@@ -34,18 +33,23 @@ function extractBearerToken(request: Request): string | null {
 async function verifyJwt(token: string): Promise<JWTClaims> {
   if (_verifyJwtFn) return _verifyJwtFn(token);
 
-  const auth0 = getInstance();
-  if (!auth0.config.audience) {
+  const domain = process.env['AUTH0_DOMAIN'];
+  const audience = process.env['AUTH0_AUDIENCE'];
+
+  if (!domain) {
+    throw new ConfigurationError(
+      'AUTH0_DOMAIN is required for Bearer token verification. ' +
+        'Set it as an environment variable.'
+    );
+  }
+  if (!audience) {
     throw new ConfigurationError(
       'AUTH0_AUDIENCE is required for Bearer token verification. ' +
-        'Set it as an environment variable or pass it to new Auth0Server({ audience: "..." }).'
+        'Set it as an environment variable.'
     );
   }
   if (!_apiClient) {
-    _apiClient = new ApiClient({
-      domain: auth0.config.domain,
-      audience: auth0.config.audience
-    });
+    _apiClient = new ApiClient({ domain, audience });
   }
   const claims = await _apiClient.verifyAccessToken({ accessToken: token });
   return claims as unknown as JWTClaims;
