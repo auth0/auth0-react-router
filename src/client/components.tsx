@@ -28,7 +28,9 @@ export function RequireAuth({ children, returnTo }: RequireAuthProps) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      loginWithRedirect({ returnTo });
+      loginWithRedirect({
+        returnTo: returnTo ?? window.location.pathname + window.location.search
+      });
     }
   }, [isAuthenticated, isLoading, loginWithRedirect, returnTo]);
 
