@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   MissingTransactionError,
   BackchannelLogoutError
@@ -9,7 +9,6 @@ import {
   handleLogout,
   handleBackchannelLogout,
   handleAuth,
-  auth0Routes,
   stripIdTokenClaims
 } from '../../src/server/handlers.js';
 import { CallbackError } from '../../src/errors/index.js';
@@ -695,117 +694,6 @@ describe('handleBackchannelLogout', () => {
     const response = await handleBackchannelLogout(auth0, request);
 
     expect(response.status).toBe(400);
-  });
-});
-
-// ─── auth0Routes ──────────────────────────────────────────────────────────────
-
-describe('auth0Routes', () => {
-  let auth0: Auth0Server;
-
-  beforeEach(() => {
-    auth0 = makeAuth0();
-  });
-
-  it('returns an array of 4 route objects', () => {
-    const routes = auth0Routes(auth0);
-    expect(routes).toHaveLength(4);
-  });
-
-  it('registers /auth/login with a loader', () => {
-    const routes = auth0Routes(auth0);
-    const login = routes.find(r => r.path === '/auth/login');
-    expect(login).toBeDefined();
-    expect(login?.loader).toBeTypeOf('function');
-    expect(login?.action).toBeUndefined();
-  });
-
-  it('registers /auth/callback with a loader', () => {
-    const routes = auth0Routes(auth0);
-    const callback = routes.find(r => r.path === '/auth/callback');
-    expect(callback).toBeDefined();
-    expect(callback?.loader).toBeTypeOf('function');
-    expect(callback?.action).toBeUndefined();
-  });
-
-  it('registers /auth/logout with both an action and a loader', () => {
-    const routes = auth0Routes(auth0);
-    const logout = routes.find(r => r.path === '/auth/logout');
-    expect(logout).toBeDefined();
-    expect(logout?.action).toBeTypeOf('function');
-    expect(logout?.loader).toBeTypeOf('function');
-  });
-
-  it('registers /auth/backchannel-logout with both an action and a loader', () => {
-    const routes = auth0Routes(auth0);
-    const backchannelLogout = routes.find(
-      r => r.path === '/auth/backchannel-logout'
-    );
-    expect(backchannelLogout).toBeDefined();
-    expect(backchannelLogout?.action).toBeTypeOf('function');
-    expect(backchannelLogout?.loader).toBeTypeOf('function');
-  });
-
-  it('login loader delegates to handleLogin', async () => {
-    const startInteractiveLogin = vi
-      .fn()
-      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
-    auth0 = makeAuth0({ startInteractiveLogin });
-
-    const routes = auth0Routes(auth0);
-    const login = routes.find(r => r.path === '/auth/login')!;
-
-    const response = await login.loader!({
-      request: makeRequest('http://localhost:3000/auth/login')
-    });
-
-    expect(startInteractiveLogin).toHaveBeenCalled();
-    expect(response.status).toBe(302);
-  });
-
-  it('callback loader delegates to handleCallback', async () => {
-    const completeInteractiveLogin = vi
-      .fn()
-      .mockResolvedValue({ appState: { returnTo: '/home' } });
-    auth0 = makeAuth0({ completeInteractiveLogin });
-
-    const routes = auth0Routes(auth0);
-    const callback = routes.find(r => r.path === '/auth/callback')!;
-
-    const response = await callback.loader!({
-      request: makeRequest(
-        'http://localhost:3000/auth/callback?code=abc&state=xyz'
-      )
-    });
-
-    expect(completeInteractiveLogin).toHaveBeenCalled();
-    expect(response.status).toBe(302);
-    expect(response.headers.get('Location')).toBe('/home');
-  });
-
-  it('logout loader returns 405 for GET', async () => {
-    const routes = auth0Routes(auth0);
-    const logout = routes.find(r => r.path === '/auth/logout')!;
-
-    const response = await logout.loader!({
-      request: makeRequest('http://localhost:3000/auth/logout')
-    });
-
-    expect(response.status).toBe(405);
-    expect(response.headers.get('Allow')).toBe('POST');
-  });
-
-  it('logout action rejects GET via handleLogout', async () => {
-    const routes = auth0Routes(auth0);
-    const logout = routes.find(r => r.path === '/auth/logout')!;
-
-    const response = await logout.action!({
-      request: makeRequest('http://localhost:3000/auth/logout', {
-        method: 'GET'
-      })
-    });
-
-    expect(response.status).toBe(405);
   });
 });
 

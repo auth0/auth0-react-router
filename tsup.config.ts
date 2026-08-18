@@ -4,7 +4,6 @@ export default defineConfig({
   entry: {
     index: 'src/client/index.ts',
     'server/index': 'src/server/index.ts',
-    'routes/index': 'src/routes/index.ts',
     'errors/index': 'src/errors/index.ts',
     'types/index': 'src/types/index.ts',
     'testing/index': 'src/testing/index.ts'

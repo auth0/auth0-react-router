@@ -45,7 +45,6 @@ code never enters the server bundle.
 | --------------------------------------------------------- | -------------------------------------------------------------------- |
 | `@auth0/auth0-react-router` (root, resolves to `/client`) | Provider, hooks, UI components, route guards                         |
 | `@auth0/auth0-react-router/server`                        | `Auth0Server` class, handlers, session and token helpers, middleware |
-| `@auth0/auth0-react-router/routes`                        | Pre-built route config objects for the full OIDC flow                |
 | `@auth0/auth0-react-router/errors`                        | Typed error classes                                                  |
 | `@auth0/auth0-react-router/types`                         | TypeScript types                                                     |
 | `@auth0/auth0-react-router/testing`                       | Test utilities, mock factories, test provider                        |
@@ -67,8 +66,8 @@ threading the instance through every call site.
 
 - Login, callback, and logout handled server-side with an encrypted JWE session cookie.
 - Back-channel logout so Auth0 can end a user's session from the Dashboard or another app.
-- Pre-built route helpers (`auth0Routes`, `handleAuth`) to register the full OIDC flow in one line,
-  or individual handlers (`handleLogin`, `handleCallback`, `handleLogout`) for custom paths.
+- `handleAuth` on a splat route registers the full OIDC flow from a single file, or use the
+  individual handlers (`handleLogin`, `handleCallback`, `handleLogout`) for custom paths.
 
 **Route protection**
 
@@ -129,26 +128,31 @@ the constructor.
 
 **2. Register the auth routes:**
 
+Create a splat route file that handles all `/auth/*` paths:
+
+```tsx
+// app/routes/auth.$.tsx
+import { handleAuth } from '@auth0/auth0-react-router/server';
+import { auth0 } from '../auth0.server';
+
+export const loader = ({ request }) => handleAuth(auth0, request);
+export const action  = ({ request }) => handleAuth(auth0, request);
+```
+
+Register it in your route config:
+
 ```ts
 // app/routes.ts
-import { auth0Routes } from '@auth0/auth0-react-router/routes';
-import { auth0 } from './auth0.server';
+import { route } from '@react-router/dev/routes';
 
 export default [
-  {
-    id: 'root',
-    path: '/',
-    // ...
-    children: [
-      ...auth0Routes(auth0) // registers /auth/login, /auth/callback, /auth/logout
-    ]
-  }
+  route('auth/*', 'routes/auth.$.tsx'),
+  // ...
 ];
 ```
 
-`auth0Routes` is the quickest option. If you need custom paths or logic, use the individual
-handlers (`handleLogin`, `handleCallback`, `handleLogout`) directly in your own route files, or use
-`handleAuth` on a splat route to dispatch all three from one file.
+`handleAuth` dispatches internally to `handleLogin`, `handleCallback`, `handleLogout`, and
+`handleBackchannelLogout` based on the URL path and HTTP method.
 
 **3. Add the provider to the root layout:**
 
