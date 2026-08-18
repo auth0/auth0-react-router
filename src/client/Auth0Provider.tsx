@@ -122,7 +122,7 @@ function SpaAuth0Provider({ children }: Auth0ProviderProps) {
             clientId: import.meta.env.VITE_AUTH0_CLIENT_ID as string,
             useRefreshTokens: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS !== 'false',
             useRefreshTokensFallback: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK === 'true',
-            cacheLocation: (import.meta.env.VITE_AUTH0_CACHE_LOCATION as 'memory' | 'localstorage') ?? 'localstorage',
+            cacheLocation: (import.meta.env.VITE_AUTH0_CACHE_LOCATION as 'memory' | 'localstorage') ?? 'memory',
             authorizationParams: {
               redirect_uri:
                 import.meta.env.VITE_AUTH0_REDIRECT_URI ??
