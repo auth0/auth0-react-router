@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
 import { render, screen, act, cleanup } from '@testing-library/react';
+import { Auth0Client } from '@auth0/auth0-spa-js';
 import { Auth0Provider } from '../../src/client/Auth0Provider.js';
 import { useAuth0 } from '../../src/client/use-auth0.js';
 
@@ -236,5 +238,78 @@ describe('Auth0Provider — SPA mode', () => {
     const token = await getCtx().getAccessToken();
     expect(token).toBe('spa-access-token');
     expect(mockGetTokenSilently).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── Session restoration ──────────────────────────────────────────────────────
+
+describe('Auth0Provider — SPA mode — session restoration', () => {
+  it('calls getTokenSilently and retries getUser when getUser returns undefined on init', async () => {
+    mockGetUser
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ sub: 'auth0|restored', name: 'Restored' });
+
+    const { getCtx } = await renderSpaProvider();
+
+    expect(mockGetTokenSilently).toHaveBeenCalledTimes(1);
+    expect(getCtx().user).toEqual({ sub: 'auth0|restored', name: 'Restored' });
+    expect(getCtx().isAuthenticated).toBe(true);
+  });
+
+  it('sets user to null when getTokenSilently throws during restoration', async () => {
+    mockGetUser.mockResolvedValue(undefined);
+    mockGetTokenSilently.mockRejectedValue(new Error('login_required'));
+
+    const { getCtx } = await renderSpaProvider();
+
+    expect(mockGetTokenSilently).toHaveBeenCalledTimes(1);
+    expect(getCtx().user).toBeNull();
+    expect(getCtx().isAuthenticated).toBe(false);
+  });
+
+  it('does not call getTokenSilently when getUser returns a user on init', async () => {
+    await renderSpaProvider();
+    expect(mockGetTokenSilently).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Auth0Client config ───────────────────────────────────────────────────────
+
+describe('Auth0Provider — SPA mode — Auth0Client config', () => {
+  function getConstructorOpts() {
+    return (Auth0Client as unknown as Mock).mock.calls[0][0];
+  }
+
+  it('passes useRefreshTokens: true by default', async () => {
+    await renderSpaProvider();
+    expect(getConstructorOpts().useRefreshTokens).toBe(true);
+  });
+
+  it('passes useRefreshTokensFallback: false by default', async () => {
+    await renderSpaProvider();
+    expect(getConstructorOpts().useRefreshTokensFallback).toBe(false);
+  });
+
+  it('passes cacheLocation: memory by default', async () => {
+    await renderSpaProvider();
+    expect(getConstructorOpts().cacheLocation).toBe('memory');
+  });
+
+  it('respects VITE_AUTH0_USE_REFRESH_TOKENS=false', async () => {
+    vi.stubEnv('VITE_AUTH0_USE_REFRESH_TOKENS', 'false');
+    await renderSpaProvider();
+    expect(getConstructorOpts().useRefreshTokens).toBe(false);
+  });
+
+  it('respects VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK=true', async () => {
+    vi.stubEnv('VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK', 'true');
+    await renderSpaProvider();
+    expect(getConstructorOpts().useRefreshTokensFallback).toBe(true);
+  });
+
+  it('respects VITE_AUTH0_CACHE_LOCATION=localstorage', async () => {
+    vi.stubEnv('VITE_AUTH0_CACHE_LOCATION', 'localstorage');
+    await renderSpaProvider();
+    expect(getConstructorOpts().cacheLocation).toBe('localstorage');
   });
 });
