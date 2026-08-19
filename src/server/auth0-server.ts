@@ -32,7 +32,7 @@ export interface ResolvedAuth0ServerConfig {
   clientId: string;
   clientSecret: string;
   secret: string;
-  appBaseUrl: string;
+  appBaseUrl?: string;
   audience?: string;
   scope: string;
 }
@@ -63,11 +63,6 @@ const REQUIRED_FIELDS: Array<{
     key: 'secret',
     envVar: 'AUTH0_SESSION_SECRET',
     hint: 'A 32+ character random string. Generate one with: openssl rand -hex 32'
-  },
-  {
-    key: 'appBaseUrl',
-    envVar: 'AUTH0_APP_BASE_URL',
-    hint: 'The base URL of your app, e.g. https://example.com or http://localhost:3000'
   }
 ];
 
@@ -142,19 +137,12 @@ export class Auth0Server {
       cookieHandler
     );
 
-    // Callback URL — Auth0 redirects here after the user authenticates
-    const callbackUrl = new URL(
-      '/auth/callback',
-      this.config.appBaseUrl
-    ).toString();
-
     // ServerClient is stateless — no network calls happen here
     this.serverClient = new ServerClient<StoreOptions>({
       domain: this.config.domain,
       clientId: this.config.clientId,
       clientSecret: this.config.clientSecret,
       authorizationParams: {
-        redirect_uri: callbackUrl,
         scope: this.config.scope,
         ...(this.config.audience ? { audience: this.config.audience } : {})
       },

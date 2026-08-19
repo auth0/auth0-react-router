@@ -110,9 +110,9 @@ describe('Auth0Server', () => {
       expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
     });
 
-    it('throws ConfigurationError when appBaseUrl is missing', () => {
+    it('does not throw when appBaseUrl is missing (inferred from request at runtime)', () => {
       const { appBaseUrl: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      expect(() => new Auth0Server(rest)).not.toThrow();
     });
 
     it('error message names the missing env var', () => {
@@ -136,7 +136,6 @@ describe('Auth0Server', () => {
         expect(message).toContain('AUTH0_CLIENT_ID');
         expect(message).toContain('AUTH0_CLIENT_SECRET');
         expect(message).toContain('AUTH0_SESSION_SECRET');
-        expect(message).toContain('AUTH0_APP_BASE_URL');
       }
     });
 

@@ -100,12 +100,15 @@ export async function handleLogin(
       : null) ??
     '/';
 
+  const appBaseUrl = auth0.config.appBaseUrl ?? new URL(request.url).origin;
+
   const authUrl = await auth0.serverClient.startInteractiveLogin(
     {
       appState: { returnTo },
-      ...(options.authorizationParams
-        ? { authorizationParams: options.authorizationParams }
-        : {})
+      authorizationParams: {
+        redirect_uri: new URL('/auth/callback', appBaseUrl).toString(),
+        ...options.authorizationParams
+      }
     },
     storeOptions
   );
@@ -203,13 +206,14 @@ export async function handleLogout(
   // Query-string returnTo is validated as a relative path (same rules as login)
   // and resolved against the app origin before being forwarded to Auth0.
   // This prevents open redirects: only paths on the same domain are accepted.
+  const appBaseUrl = auth0.config.appBaseUrl ?? new URL(request.url).origin;
   const queryReturnTo = new URL(request.url).searchParams.get('returnTo');
   const returnTo =
     options.returnTo ??
     (queryReturnTo && isSafeRelativeUrl(queryReturnTo)
-      ? new URL(auth0.config.appBaseUrl).origin + queryReturnTo
+      ? new URL(appBaseUrl).origin + queryReturnTo
       : null) ??
-    new URL(auth0.config.appBaseUrl).origin;
+    new URL(appBaseUrl).origin;
 
   const logoutUrl = await auth0.serverClient.logout({ returnTo }, storeOptions);
 
