@@ -30,6 +30,14 @@ function extractBearerToken(request: Request): string | null {
   return auth.slice(7).trim() || null;
 }
 
+// Reads AUTH0_DOMAIN and AUTH0_AUDIENCE directly from the environment — no
+// Auth0Server instance required. This is intentional: getClaims /
+// requireClaims are designed to work in API-only deployments where only JWT
+// verification is needed and the full session/cookie stack (AUTH0_CLIENT_ID,
+// AUTH0_CLIENT_SECRET, AUTH0_SESSION_SECRET) is not configured. If you are
+// using a full Auth0Server setup, set AUTH0_DOMAIN and AUTH0_AUDIENCE as
+// environment variables alongside the other required config — they will be
+// picked up here automatically.
 async function verifyJwt(token: string): Promise<JWTClaims> {
   if (_verifyJwtFn) return _verifyJwtFn(token);
 
