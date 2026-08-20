@@ -3,7 +3,7 @@ import {
   CookieTransactionStore,
   StatelessStateStore
 } from '@auth0/auth0-server-js';
-import type { StateData, TokenSet as UpstreamTokenSet } from '@auth0/auth0-server-js';
+import type { StateData, TokenSet as UpstreamTokenSet, LogoutTokenClaims } from '@auth0/auth0-server-js';
 import { ConfigurationError } from '../errors/index.js';
 import { ReactRouterCookieHandler } from './cookie-handler.js';
 import type { StoreOptions } from './cookie-handler.js';
@@ -149,6 +149,10 @@ export class HookedStateStore {
 
   delete(identifier: string, storeOptions?: StoreOptions) {
     return this.inner.delete(identifier, storeOptions);
+  }
+
+  deleteByLogoutToken(_claims: LogoutTokenClaims, _storeOptions?: StoreOptions) {
+    return this.inner.deleteByLogoutToken();
   }
 
   getCaptured(cookieJar: Response): Auth0Session | null {
