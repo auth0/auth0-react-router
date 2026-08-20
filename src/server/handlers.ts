@@ -154,6 +154,11 @@ export async function handleCallback(
       returnTo?: string;
     }>(new URL(request.url), storeOptions);
     appState = result.appState;
+
+    if (auth0.onCallback) {
+      const session = auth0.stateStore.getCaptured(cookieJar);
+      if (session) await auth0.onCallback(session);
+    }
   } catch (err) {
     if (err instanceof MissingTransactionError) {
       throw new CallbackError(

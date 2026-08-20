@@ -41,6 +41,8 @@ function makeAuth0(
     logout: ReturnType<typeof vi.fn>;
     handleBackchannelLogout: ReturnType<typeof vi.fn>;
     appBaseUrl: string | undefined;
+    onCallback: ReturnType<typeof vi.fn>;
+    capturedSession: object | null;
   }> = {}
 ): Auth0Server {
   return {
@@ -66,6 +68,10 @@ function makeAuth0(
         overrides.handleBackchannelLogout ??
         vi.fn().mockResolvedValue(undefined)
     },
+    stateStore: {
+      getCaptured: vi.fn().mockReturnValue(overrides.capturedSession ?? null)
+    },
+    onCallback: overrides.onCallback,
     config: {
       appBaseUrl: 'appBaseUrl' in overrides ? overrides.appBaseUrl : 'http://localhost:3000',
       domain: 'test.auth0.com',
@@ -356,6 +362,27 @@ describe('handleCallback', () => {
     expect(response.headers.getSetCookie()).toContain(
       '__a0_session=s1; HttpOnly; Path=/'
     );
+  });
+
+  it('calls onCallback with the captured session after a successful callback', async () => {
+    const onCallback = vi.fn().mockResolvedValue(undefined);
+    const capturedSession = { user: { sub: 'auth0|1' }, tokenSets: [], domain: 'test.auth0.com' };
+    const auth0 = makeAuth0({ onCallback, capturedSession });
+
+    await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(onCallback).toHaveBeenCalledWith(capturedSession);
+  });
+
+  it('does not call onCallback when no hook is configured', async () => {
+    const auth0 = makeAuth0({ capturedSession: { user: { sub: 'auth0|1' }, tokenSets: [], domain: 'test.auth0.com' } });
+
+    await expect(
+      handleCallback(auth0, makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz'))
+    ).resolves.not.toThrow();
   });
 
   it('throws CallbackError when the transaction is missing', async () => {

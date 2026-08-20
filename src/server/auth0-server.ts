@@ -3,9 +3,11 @@ import {
   CookieTransactionStore,
   StatelessStateStore
 } from '@auth0/auth0-server-js';
+import type { StateData, TokenSet as UpstreamTokenSet } from '@auth0/auth0-server-js';
 import { ConfigurationError } from '../errors/index.js';
 import { ReactRouterCookieHandler } from './cookie-handler.js';
 import type { StoreOptions } from './cookie-handler.js';
+import type { Auth0Session, Auth0User, TokenSet } from '../types/index.js';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,8 @@ export interface Auth0ServerConfig {
   appBaseUrl?: string; // AUTH0_APP_BASE_URL
   audience?: string; // AUTH0_AUDIENCE (optional)
   scope?: string; // AUTH0_SCOPE (optional, default: openid profile email)
+  beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>;
+  onCallback?: (session: Auth0Session) => void | Promise<void>;
 }
 
 /**
@@ -95,6 +99,63 @@ function resolveConfig(
   return resolved as ResolvedAuth0ServerConfig;
 }
 
+// ─── HookedStateStore ─────────────────────────────────────────────────────────
+
+export class HookedStateStore {
+  private captured = new WeakMap<Response, Auth0Session>();
+
+  constructor(
+    private inner: StatelessStateStore<StoreOptions>,
+    private beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>
+  ) {}
+
+  async set(
+    identifier: string,
+    data: StateData,
+    removeIfExists: boolean,
+    storeOptions?: StoreOptions
+  ): Promise<void> {
+    let session: Auth0Session = {
+      user: data.user as Auth0User,
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      tokenSets: data.tokenSets as TokenSet[],
+      domain: data.domain ?? ''
+    };
+
+    if (this.beforeSessionSaved) {
+      session = await this.beforeSessionSaved(session);
+    }
+
+    const finalData: StateData = {
+      ...data,
+      user: session.user,
+      idToken: session.idToken,
+      refreshToken: session.refreshToken,
+      tokenSets: session.tokenSets as UpstreamTokenSet[],
+      domain: session.domain
+    };
+
+    if (storeOptions?.response) {
+      this.captured.set(storeOptions.response, session);
+    }
+
+    return this.inner.set(identifier, finalData, removeIfExists, storeOptions);
+  }
+
+  get(identifier: string, storeOptions?: StoreOptions) {
+    return this.inner.get(identifier, storeOptions);
+  }
+
+  delete(identifier: string, storeOptions?: StoreOptions) {
+    return this.inner.delete(identifier, storeOptions);
+  }
+
+  getCaptured(cookieJar: Response): Auth0Session | null {
+    return this.captured.get(cookieJar) ?? null;
+  }
+}
+
 // ─── Auth0Server ──────────────────────────────────────────────────────────────
 
 /**
@@ -114,13 +175,15 @@ const STATE_IDENTIFIER = '__a0_session';
 
 export class Auth0Server {
   readonly serverClient: ServerClient<StoreOptions>;
-  readonly stateStore: StatelessStateStore<StoreOptions>;
+  readonly stateStore: HookedStateStore;
   readonly stateIdentifier = STATE_IDENTIFIER;
   readonly config: ResolvedAuth0ServerConfig;
+  readonly onCallback?: (session: Auth0Session) => void | Promise<void>;
 
   constructor(options: Auth0ServerConfig = {}) {
     // Resolve and validate config — throws ConfigurationError if anything is missing
     this.config = resolveConfig(options);
+    this.onCallback = options.onCallback;
 
     // One shared cookie handler — both stores use the same instance
     const cookieHandler = new ReactRouterCookieHandler();
@@ -131,11 +194,12 @@ export class Auth0Server {
       cookieHandler
     );
 
-    // Holds the encrypted session (user + tokens) for the duration of the session
-    this.stateStore = new StatelessStateStore<StoreOptions>(
+    // Wraps the stateless store to apply beforeSessionSaved and capture session data for onCallback
+    const innerStore = new StatelessStateStore<StoreOptions>(
       { secret: this.config.secret },
       cookieHandler
     );
+    this.stateStore = new HookedStateStore(innerStore, options.beforeSessionSaved);
 
     // ServerClient is stateless — no network calls happen here
     this.serverClient = new ServerClient<StoreOptions>({
