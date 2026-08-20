@@ -64,7 +64,7 @@ export interface RequireClaimsOptions {
 
 /**
  * Returns validated JWT claims, or null if no/invalid token.
- * @throws {ConfigurationError} if AUTH0_AUDIENCE is not configured.
+ * @throws {ConfigurationError} if AUTH0_DOMAIN or AUTH0_AUDIENCE is not configured.
  */
 export async function getClaims(request: Request): Promise<JWTClaims | null> {
   const token = extractBearerToken(request);
@@ -77,7 +77,7 @@ export async function getClaims(request: Request): Promise<JWTClaims | null> {
   }
 }
 
-/** Returns validated JWT claims. Throws BearerTokenError (401) or InsufficientScopeError (403). */
+/** Returns validated JWT claims. Throws BearerTokenError (401), InsufficientScopeError (403), or ConfigurationError (500) if AUTH0_DOMAIN or AUTH0_AUDIENCE is not configured. */
 export async function requireClaims(
   request: Request,
   opts?: RequireClaimsOptions
