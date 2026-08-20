@@ -3,9 +3,11 @@ import {
   CookieTransactionStore,
   StatelessStateStore
 } from '@auth0/auth0-server-js';
+import type { StateData, TokenSet as UpstreamTokenSet, LogoutTokenClaims } from '@auth0/auth0-server-js';
 import { ConfigurationError } from '../errors/index.js';
 import { ReactRouterCookieHandler } from './cookie-handler.js';
 import type { StoreOptions } from './cookie-handler.js';
+import type { Auth0Session, Auth0User, TokenSet } from '../types/index.js';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,20 @@ export interface Auth0ServerConfig {
   appBaseUrl?: string; // AUTH0_APP_BASE_URL
   audience?: string; // AUTH0_AUDIENCE (optional)
   scope?: string; // AUTH0_SCOPE (optional, default: openid profile email)
+  /**
+   * Called every time the session is written — at login, on token refresh, and
+   * on updateSession. Use it to modify or trim the session before it is
+   * encrypted into the cookie. Avoid expensive work here (DB calls, HTTP
+   * requests) as it runs on every session write, not just at login.
+   */
+  beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>;
+  /**
+   * Called once after the user successfully completes the login callback.
+   * Use it to provision the user in your own database or trigger side effects.
+   * If this hook throws, the error propagates and the session cookie is not
+   * sent to the browser.
+   */
+  onCallback?: (session: Auth0Session) => void | Promise<void>;
 }
 
 /**
@@ -32,7 +48,7 @@ export interface ResolvedAuth0ServerConfig {
   clientId: string;
   clientSecret: string;
   secret: string;
-  appBaseUrl: string;
+  appBaseUrl?: string;
   audience?: string;
   scope: string;
 }
@@ -63,11 +79,6 @@ const REQUIRED_FIELDS: Array<{
     key: 'secret',
     envVar: 'AUTH0_SESSION_SECRET',
     hint: 'A 32+ character random string. Generate one with: openssl rand -hex 32'
-  },
-  {
-    key: 'appBaseUrl',
-    envVar: 'AUTH0_APP_BASE_URL',
-    hint: 'The base URL of your app, e.g. https://example.com or http://localhost:3000'
   }
 ];
 
@@ -100,6 +111,67 @@ function resolveConfig(
   return resolved as ResolvedAuth0ServerConfig;
 }
 
+// ─── HookedStateStore ─────────────────────────────────────────────────────────
+
+export class HookedStateStore {
+  private captured = new WeakMap<Response, Auth0Session>();
+
+  constructor(
+    private inner: StatelessStateStore<StoreOptions>,
+    private beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>
+  ) {}
+
+  async set(
+    identifier: string,
+    data: StateData,
+    removeIfExists: boolean,
+    storeOptions?: StoreOptions
+  ): Promise<void> {
+    let session: Auth0Session = {
+      user: data.user as Auth0User,
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      tokenSets: data.tokenSets as TokenSet[],
+      domain: data.domain
+    };
+
+    if (this.beforeSessionSaved) {
+      session = await this.beforeSessionSaved(session);
+    }
+
+    const finalData: StateData = {
+      ...data,
+      user: session.user,
+      idToken: session.idToken,
+      refreshToken: session.refreshToken,
+      tokenSets: session.tokenSets as UpstreamTokenSet[],
+      domain: session.domain
+    };
+
+    if (storeOptions?.response) {
+      this.captured.set(storeOptions.response, session);
+    }
+
+    return this.inner.set(identifier, finalData, removeIfExists, storeOptions);
+  }
+
+  get(identifier: string, storeOptions?: StoreOptions) {
+    return this.inner.get(identifier, storeOptions);
+  }
+
+  delete(identifier: string, storeOptions?: StoreOptions) {
+    return this.inner.delete(identifier, storeOptions);
+  }
+
+  deleteByLogoutToken(_claims: LogoutTokenClaims, _storeOptions?: StoreOptions) {
+    return this.inner.deleteByLogoutToken();
+  }
+
+  getCaptured(cookieJar: Response): Auth0Session | null {
+    return this.captured.get(cookieJar) ?? null;
+  }
+}
+
 // ─── Auth0Server ──────────────────────────────────────────────────────────────
 
 /**
@@ -119,13 +191,15 @@ const STATE_IDENTIFIER = '__a0_session';
 
 export class Auth0Server {
   readonly serverClient: ServerClient<StoreOptions>;
-  readonly stateStore: StatelessStateStore<StoreOptions>;
+  readonly stateStore: HookedStateStore;
   readonly stateIdentifier = STATE_IDENTIFIER;
   readonly config: ResolvedAuth0ServerConfig;
+  readonly onCallback?: (session: Auth0Session) => void | Promise<void>;
 
   constructor(options: Auth0ServerConfig = {}) {
     // Resolve and validate config — throws ConfigurationError if anything is missing
     this.config = resolveConfig(options);
+    this.onCallback = options.onCallback;
 
     // One shared cookie handler — both stores use the same instance
     const cookieHandler = new ReactRouterCookieHandler();
@@ -136,17 +210,12 @@ export class Auth0Server {
       cookieHandler
     );
 
-    // Holds the encrypted session (user + tokens) for the duration of the session
-    this.stateStore = new StatelessStateStore<StoreOptions>(
+    // Wraps the stateless store to apply beforeSessionSaved and capture session data for onCallback
+    const innerStore = new StatelessStateStore<StoreOptions>(
       { secret: this.config.secret },
       cookieHandler
     );
-
-    // Callback URL — Auth0 redirects here after the user authenticates
-    const callbackUrl = new URL(
-      '/auth/callback',
-      this.config.appBaseUrl
-    ).toString();
+    this.stateStore = new HookedStateStore(innerStore, options.beforeSessionSaved);
 
     // ServerClient is stateless — no network calls happen here
     this.serverClient = new ServerClient<StoreOptions>({
@@ -154,7 +223,6 @@ export class Auth0Server {
       clientId: this.config.clientId,
       clientSecret: this.config.clientSecret,
       authorizationParams: {
-        redirect_uri: callbackUrl,
         scope: this.config.scope,
         ...(this.config.audience ? { audience: this.config.audience } : {})
       },

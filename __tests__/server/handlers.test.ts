@@ -40,6 +40,9 @@ function makeAuth0(
     completeInteractiveLogin: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
     handleBackchannelLogout: ReturnType<typeof vi.fn>;
+    appBaseUrl: string | undefined;
+    onCallback: ReturnType<typeof vi.fn>;
+    capturedSession: object | null;
   }> = {}
 ): Auth0Server {
   return {
@@ -65,8 +68,12 @@ function makeAuth0(
         overrides.handleBackchannelLogout ??
         vi.fn().mockResolvedValue(undefined)
     },
+    stateStore: {
+      getCaptured: vi.fn().mockReturnValue(overrides.capturedSession ?? null)
+    },
+    onCallback: overrides.onCallback,
     config: {
-      appBaseUrl: 'http://localhost:3000',
+      appBaseUrl: 'appBaseUrl' in overrides ? overrides.appBaseUrl : 'http://localhost:3000',
       domain: 'test.auth0.com',
       clientId: 'abc',
       clientSecret: 'secret',
@@ -168,7 +175,43 @@ describe('handleLogin', () => {
 
     expect(startInteractiveLogin).toHaveBeenCalledWith(
       expect.objectContaining({
-        authorizationParams: { prompt: 'login', screen_hint: 'signup' }
+        authorizationParams: expect.objectContaining({ prompt: 'login', screen_hint: 'signup' })
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it('always passes redirect_uri derived from appBaseUrl to startInteractiveLogin', async () => {
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(auth0, makeRequest('http://localhost:3000/auth/login'));
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authorizationParams: expect.objectContaining({
+          redirect_uri: 'http://localhost:3000/auth/callback'
+        })
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it('infers redirect_uri from the request origin when appBaseUrl is not configured', async () => {
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin, appBaseUrl: undefined });
+
+    await handleLogin(auth0, makeRequest('https://myapp.com/auth/login'));
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authorizationParams: expect.objectContaining({
+          redirect_uri: 'https://myapp.com/auth/callback'
+        })
       }),
       expect.any(Object)
     );
@@ -319,6 +362,27 @@ describe('handleCallback', () => {
     expect(response.headers.getSetCookie()).toContain(
       '__a0_session=s1; HttpOnly; Path=/'
     );
+  });
+
+  it('calls onCallback with the captured session after a successful callback', async () => {
+    const onCallback = vi.fn().mockResolvedValue(undefined);
+    const capturedSession = { user: { sub: 'auth0|1' }, tokenSets: [], domain: 'test.auth0.com' };
+    const auth0 = makeAuth0({ onCallback, capturedSession });
+
+    await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(onCallback).toHaveBeenCalledWith(capturedSession);
+  });
+
+  it('does not call onCallback when no hook is configured', async () => {
+    const auth0 = makeAuth0({ capturedSession: { user: { sub: 'auth0|1' }, tokenSets: [], domain: 'test.auth0.com' } });
+
+    await expect(
+      handleCallback(auth0, makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz'))
+    ).resolves.not.toThrow();
   });
 
   it('throws CallbackError when the transaction is missing', async () => {
@@ -490,6 +554,23 @@ describe('handleLogout', () => {
 
     expect(logoutFn).toHaveBeenCalledWith(
       { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('infers returnTo from the request origin when appBaseUrl is not configured', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn, appBaseUrl: undefined });
+
+    await handleLogout(
+      auth0,
+      makeRequest('https://myapp.com/auth/logout', { method: 'POST' })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'https://myapp.com' },
       expect.any(Object)
     );
   });

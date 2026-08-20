@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Auth0Server } from '../../src/server/auth0-server.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Auth0Server, HookedStateStore } from '../../src/server/auth0-server.js';
 import { ConfigurationError } from '../../src/errors/index.js';
+import type { Auth0Session } from '../../src/types/index.js';
 
 const validConfig = {
   domain: 'test.auth0.com',
@@ -110,9 +111,9 @@ describe('Auth0Server', () => {
       expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
     });
 
-    it('throws ConfigurationError when appBaseUrl is missing', () => {
+    it('does not throw when appBaseUrl is missing (inferred from request at runtime)', () => {
       const { appBaseUrl: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      expect(() => new Auth0Server(rest)).not.toThrow();
     });
 
     it('error message names the missing env var', () => {
@@ -136,7 +137,6 @@ describe('Auth0Server', () => {
         expect(message).toContain('AUTH0_CLIENT_ID');
         expect(message).toContain('AUTH0_CLIENT_SECRET');
         expect(message).toContain('AUTH0_SESSION_SECRET');
-        expect(message).toContain('AUTH0_APP_BASE_URL');
       }
     });
 
@@ -148,5 +148,144 @@ describe('Auth0Server', () => {
         expect((err as ConfigurationError).statusCode).toBe(500);
       }
     });
+  });
+
+  // ─── Hooks ──────────────────────────────────────────────────────────────────
+
+  describe('hooks', () => {
+    it('accepts a beforeSessionSaved hook without throwing', () => {
+      const auth0 = new Auth0Server({
+        ...validConfig,
+        beforeSessionSaved: session => session
+      });
+      expect(auth0).toBeDefined();
+    });
+
+    it('accepts an onCallback hook and exposes it', () => {
+      const hook = vi.fn();
+      const auth0 = new Auth0Server({ ...validConfig, onCallback: hook });
+      expect(auth0.onCallback).toBe(hook);
+    });
+
+    it('onCallback is undefined when not provided', () => {
+      const auth0 = new Auth0Server(validConfig);
+      expect(auth0.onCallback).toBeUndefined();
+    });
+  });
+});
+
+// ─── HookedStateStore ─────────────────────────────────────────────────────────
+
+function makeMockInner() {
+  return {
+    set: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue(null),
+    delete: vi.fn().mockResolvedValue(undefined)
+  };
+}
+
+function makeSessionData() {
+  return {
+    user: { sub: 'auth0|1', name: 'Test User' },
+    tokenSets: [],
+    idToken: undefined,
+    refreshToken: undefined,
+    domain: 'test.auth0.com'
+  };
+}
+
+describe('HookedStateStore', () => {
+  it('calls the inner store set without modification when no hook is provided', async () => {
+    const inner = makeMockInner();
+    const store = new HookedStateStore(inner as never);
+    const data = makeSessionData();
+    const cookieJar = new Response();
+
+    await store.set('key', data as never, false, {
+      request: new Request('http://localhost'),
+      response: cookieJar
+    });
+
+    expect(inner.set).toHaveBeenCalledWith('key', expect.objectContaining({ user: data.user }), false, expect.any(Object));
+  });
+
+  it('calls beforeSessionSaved and writes the modified session', async () => {
+    const inner = makeMockInner();
+    const beforeSessionSaved = vi.fn((s: Auth0Session) => ({
+      ...s,
+      user: { ...s.user, name: 'Modified' }
+    }));
+    const store = new HookedStateStore(inner as never, beforeSessionSaved);
+    const data = makeSessionData();
+    const cookieJar = new Response();
+
+    await store.set('key', data as never, false, {
+      request: new Request('http://localhost'),
+      response: cookieJar
+    });
+
+    expect(beforeSessionSaved).toHaveBeenCalled();
+    expect(inner.set).toHaveBeenCalledWith(
+      'key',
+      expect.objectContaining({ user: expect.objectContaining({ name: 'Modified' }) }),
+      false,
+      expect.any(Object)
+    );
+  });
+
+  it('captures the session keyed by the cookieJar response', async () => {
+    const inner = makeMockInner();
+    const store = new HookedStateStore(inner as never);
+    const data = makeSessionData();
+    const cookieJar = new Response();
+
+    await store.set('key', data as never, false, {
+      request: new Request('http://localhost'),
+      response: cookieJar
+    });
+
+    const captured = store.getCaptured(cookieJar);
+    expect(captured?.user.sub).toBe('auth0|1');
+  });
+
+  it('getCaptured returns null for an unknown cookieJar', () => {
+    const inner = makeMockInner();
+    const store = new HookedStateStore(inner as never);
+    expect(store.getCaptured(new Response())).toBeNull();
+  });
+
+  it('different cookieJars do not share captured data', async () => {
+    const inner = makeMockInner();
+    const store = new HookedStateStore(inner as never);
+    const jarA = new Response();
+    const jarB = new Response();
+
+    await store.set('key', makeSessionData() as never, false, {
+      request: new Request('http://localhost'),
+      response: jarA
+    });
+
+    expect(store.getCaptured(jarA)).not.toBeNull();
+    expect(store.getCaptured(jarB)).toBeNull();
+  });
+
+  it('delegates get to the inner store', async () => {
+    const inner = makeMockInner();
+    inner.get.mockResolvedValue({ user: { sub: 'auth0|1' } });
+    const store = new HookedStateStore(inner as never);
+
+    const result = await store.get('key', { request: new Request('http://localhost'), response: new Response() });
+
+    expect(inner.get).toHaveBeenCalledWith('key', expect.any(Object));
+    expect(result).toEqual({ user: { sub: 'auth0|1' } });
+  });
+
+  it('delegates delete to the inner store', async () => {
+    const inner = makeMockInner();
+    const store = new HookedStateStore(inner as never);
+
+    await store.delete('key', { request: new Request('http://localhost'), response: new Response() });
+
+    expect(inner.delete).toHaveBeenCalledWith('key', expect.any(Object));
   });
 });
