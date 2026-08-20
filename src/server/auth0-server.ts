@@ -23,7 +23,19 @@ export interface Auth0ServerConfig {
   appBaseUrl?: string; // AUTH0_APP_BASE_URL
   audience?: string; // AUTH0_AUDIENCE (optional)
   scope?: string; // AUTH0_SCOPE (optional, default: openid profile email)
+  /**
+   * Called every time the session is written — at login, on token refresh, and
+   * on updateSession. Use it to modify or trim the session before it is
+   * encrypted into the cookie. Avoid expensive work here (DB calls, HTTP
+   * requests) as it runs on every session write, not just at login.
+   */
   beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>;
+  /**
+   * Called once after the user successfully completes the login callback.
+   * Use it to provision the user in your own database or trigger side effects.
+   * If this hook throws, the error propagates and the session cookie is not
+   * sent to the browser.
+   */
   onCallback?: (session: Auth0Session) => void | Promise<void>;
 }
 
@@ -120,7 +132,7 @@ export class HookedStateStore {
       idToken: data.idToken,
       refreshToken: data.refreshToken,
       tokenSets: data.tokenSets as TokenSet[],
-      domain: data.domain ?? ''
+      domain: data.domain
     };
 
     if (this.beforeSessionSaved) {

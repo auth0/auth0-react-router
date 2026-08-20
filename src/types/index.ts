@@ -37,7 +37,7 @@ export interface Auth0Session {
   idToken?: string;
   refreshToken?: string;
   tokenSets: TokenSet[];
-  domain: string;
+  domain?: string;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
