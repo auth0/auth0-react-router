@@ -10,15 +10,8 @@ import {
   ConfigurationError,
   InsufficientScopeError
 } from '../../src/errors/index.js';
-import { getInstance } from '../../src/server/utils.js';
 import { ApiClient } from '@auth0/auth0-api-js';
 import type { JWTClaims } from '../../src/types/index.js';
-
-vi.mock('../../src/server/utils.js', () => ({
-  getInstance: vi.fn(() => ({
-    config: { domain: 'test.auth0.com', audience: 'https://api.example.com' }
-  }))
-}));
 
 const mockVerifyAccessToken = vi.hoisted(() => vi.fn());
 
@@ -189,19 +182,43 @@ describe('requireClaims — scope check', () => {
   });
 });
 
-// ─── audience guard (no _setVerifyJwt stub) ───────────────────────────────────
+// ─── config guards (no _setVerifyJwt stub) ────────────────────────────────────
 
-describe('audience guard — missing AUTH0_AUDIENCE', () => {
+describe('config guard — missing AUTH0_DOMAIN', () => {
   beforeEach(() => {
-    vi.mocked(getInstance).mockReturnValue({
-      config: { domain: 'test.auth0.com', audience: undefined }
-    } as ReturnType<typeof getInstance>);
+    delete process.env['AUTH0_DOMAIN'];
+    process.env['AUTH0_AUDIENCE'] = 'https://api.example.com';
   });
 
   afterEach(() => {
-    vi.mocked(getInstance).mockReturnValue({
-      config: { domain: 'test.auth0.com', audience: 'https://api.example.com' }
-    } as ReturnType<typeof getInstance>);
+    delete process.env['AUTH0_DOMAIN'];
+    delete process.env['AUTH0_AUDIENCE'];
+    _resetApiClient();
+  });
+
+  it('getClaims throws ConfigurationError when AUTH0_DOMAIN is not set', async () => {
+    await expect(getClaims(makeRequest('Bearer some-token'))).rejects.toThrow(
+      ConfigurationError
+    );
+  });
+
+  it('requireClaims throws ConfigurationError when AUTH0_DOMAIN is not set', async () => {
+    await expect(
+      requireClaims(makeRequest('Bearer some-token'))
+    ).rejects.toThrow(ConfigurationError);
+  });
+});
+
+describe('config guard — missing AUTH0_AUDIENCE', () => {
+  beforeEach(() => {
+    process.env['AUTH0_DOMAIN'] = 'test.auth0.com';
+    delete process.env['AUTH0_AUDIENCE'];
+  });
+
+  afterEach(() => {
+    delete process.env['AUTH0_DOMAIN'];
+    delete process.env['AUTH0_AUDIENCE'];
+    _resetApiClient();
   });
 
   it('getClaims throws ConfigurationError when AUTH0_AUDIENCE is not set', async () => {
@@ -223,10 +240,14 @@ describe('audience guard — missing AUTH0_AUDIENCE', () => {
 
 describe('ApiClient integration — real verifyJwt path', () => {
   beforeEach(() => {
+    process.env['AUTH0_DOMAIN'] = 'test.auth0.com';
+    process.env['AUTH0_AUDIENCE'] = 'https://api.example.com';
     mockVerifyAccessToken.mockResolvedValue(CLAIMS);
   });
 
   afterEach(() => {
+    delete process.env['AUTH0_DOMAIN'];
+    delete process.env['AUTH0_AUDIENCE'];
     _resetApiClient();
     vi.mocked(ApiClient).mockClear();
     mockVerifyAccessToken.mockReset();
