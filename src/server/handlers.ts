@@ -2,7 +2,7 @@ import {
   MissingTransactionError,
   BackchannelLogoutError
 } from '@auth0/auth0-server-js';
-import { CallbackError } from '../errors/index.js';
+import { Auth0Error, CallbackError } from '../errors/index.js';
 import type { Auth0Server } from './auth0-server.js';
 import type { Auth0User } from '../types/index.js';
 
@@ -319,20 +319,27 @@ export async function handleAuth(
 ): Promise<Response> {
   const { pathname } = new URL(request.url);
 
-  if (pathname.endsWith('/login')) {
-    return handleLogin(auth0, request, options.login);
-  }
-  if (pathname.endsWith('/callback')) {
-    return handleCallback(auth0, request, options.callback);
-  }
-  if (pathname.endsWith('/logout')) {
-    return handleLogout(auth0, request, options.logout);
-  }
-  if (pathname.endsWith('/backchannel-logout')) {
-    return handleBackchannelLogout(auth0, request);
-  }
+  try {
+    if (pathname.endsWith('/login')) {
+      return await handleLogin(auth0, request, options.login);
+    }
+    if (pathname.endsWith('/callback')) {
+      return await handleCallback(auth0, request, options.callback);
+    }
+    if (pathname.endsWith('/logout')) {
+      return await handleLogout(auth0, request, options.logout);
+    }
+    if (pathname.endsWith('/backchannel-logout')) {
+      return await handleBackchannelLogout(auth0, request);
+    }
 
-  return new Response('Not Found', { status: 404 });
+    return new Response('Not Found', { status: 404 });
+  } catch (err) {
+    if (err instanceof Auth0Error) {
+      return new Response(err.message, { status: err.statusCode });
+    }
+    throw err;
+  }
 }
 
 // ─── stripIdTokenClaims ───────────────────────────────────────────────────────
