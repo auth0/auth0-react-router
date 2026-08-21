@@ -337,12 +337,12 @@ export async function handleAuth(
 
 // ─── stripIdTokenClaims ───────────────────────────────────────────────────────
 
-const STRIP_CLAIMS = new Set(['iss', 'aud', 'exp', 'iat', 'nonce', 'at_hash']);
+const STRIP_CLAIMS = new Set(['iss', 'aud', 'exp', 'iat', 'nonce', 'at_hash', 'sid']);
 
 /**
  * Removes standard OIDC metadata fields from a user object.
  *
- * ID token claims (iss, aud, exp, iat, nonce, at_hash) are written into the
+ * ID token claims (iss, aud, exp, iat, nonce, at_hash, sid) are written into the
  * user object during the callback but are not useful after that point. Stripping
  * them inside a beforeSessionSaved hook reduces the encrypted session cookie size.
  *
