@@ -242,6 +242,23 @@ export function requireClaimsFromContext(
   return claims;
 }
 
+// ─── Context helpers (internal) ───────────────────────────────────────────────
+
+// React Router's context.get() throws "No value found for context" when the key
+// has never been set and the default value is undefined — it treats undefined as
+// "no default provided" rather than "default is undefined". Use this helper
+// wherever we speculatively read a context key that may not have been set yet.
+function getOptionalContext<T>(
+  context: MiddlewareContext,
+  key: RouterContext<T>
+): T | undefined {
+  try {
+    return context.get(key);
+  } catch {
+    return undefined;
+  }
+}
+
 // ─── defineRouteAuth ──────────────────────────────────────────────────────────
 
 export interface DefineRouteAuthOptions {
@@ -308,7 +325,9 @@ export function defineRouteAuth(opts?: DefineRouteAuthOptions): {
     middleware: [
       async ({ request, context }, next) => {
         // Read from context if auth0Middleware already ran; otherwise decrypt now.
-        const sessionInCtx = context.get(auth0SessionContext);
+        // getOptionalContext is used here because context.get() throws when the
+        // key was never set and the default is undefined (see helper above).
+        const sessionInCtx = getOptionalContext(context, auth0SessionContext);
         const session =
           sessionInCtx !== undefined ? sessionInCtx : await getSession(request);
 
