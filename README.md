@@ -122,7 +122,7 @@ the constructor.
 | `AUTH0_CLIENT_ID`      | Application client ID                                           |
 | `AUTH0_CLIENT_SECRET`  | Application client secret                                       |
 | `AUTH0_SESSION_SECRET` | Random string (min 32 chars) used to encrypt the session cookie |
-| `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com`                |
+| `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com` (optional — inferred from `request.url` at runtime, but should be set explicitly in production when running behind a reverse proxy) |
 | `AUTH0_AUDIENCE`       | API audience, if requesting access tokens for an API (optional) |
 | `AUTH0_SCOPE`          | OAuth scopes, defaults to `openid profile email` (optional)     |
 
@@ -247,6 +247,22 @@ export const middleware = adminAuth.middleware;
 
 export const loader = ({ context }) => {
   const user = context.get(auth0UserContext);
+  return { user };
+};
+```
+
+Both `auth0SessionContext` and `auth0UserContext` follow the same pattern — call
+`context.get(key)`, not `key.get(context)`:
+
+```ts
+import {
+  auth0SessionContext,
+  auth0UserContext
+} from '@auth0/auth0-react-router/server';
+
+export const loader = ({ context }) => {
+  const session = context.get(auth0SessionContext); // Auth0Session | null
+  const user    = context.get(auth0UserContext);    // Auth0User | null
   return { user };
 };
 ```
