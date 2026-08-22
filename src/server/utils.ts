@@ -60,6 +60,24 @@ export function _setAuth0Instance(instance: Auth0Server | undefined): void {
   _instance = instance;
 }
 
+/**
+ * Registers your Auth0Server instance as the singleton used by standalone
+ * helpers (getSession, requireSession, getAccessToken, updateSession,
+ * deleteSession, etc.).
+ *
+ * Call this once at app startup, after constructing your Auth0Server instance,
+ * so that hooks registered on it (onCallback, beforeSessionSaved) are honoured
+ * during token refresh and session writes triggered by the standalone helpers.
+ *
+ * @example
+ * // auth0.server.ts
+ * export const auth0 = new Auth0Server({ onCallback, beforeSessionSaved });
+ * registerAuth0Instance(auth0);
+ */
+export function registerAuth0Instance(instance: Auth0Server): void {
+  _instance = instance;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**

@@ -32,7 +32,8 @@ export {
   getAccessToken,
   updateSession,
   deleteSession,
-  createApiClient
+  createApiClient,
+  registerAuth0Instance
 } from './utils.js';
 export type { RequireSessionOptions, CreateApiClientOptions } from './utils.js';
 
