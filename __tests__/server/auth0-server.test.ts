@@ -91,44 +91,48 @@ describe('Auth0Server', () => {
   // ─── ConfigurationError ─────────────────────────────────────────────────────
 
   describe('ConfigurationError', () => {
-    it('throws ConfigurationError when domain is missing', () => {
+    it('does not throw on construction when domain is missing — throws on first use', () => {
       const { domain: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      const auth0 = new Auth0Server(rest);
+      expect(() => auth0.config).toThrowError(ConfigurationError);
     });
 
-    it('throws ConfigurationError when clientId is missing', () => {
+    it('does not throw on construction when clientId is missing — throws on first use', () => {
       const { clientId: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      const auth0 = new Auth0Server(rest);
+      expect(() => auth0.config).toThrowError(ConfigurationError);
     });
 
-    it('throws ConfigurationError when clientSecret is missing', () => {
+    it('does not throw on construction when clientSecret is missing — throws on first use', () => {
       const { clientSecret: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      const auth0 = new Auth0Server(rest);
+      expect(() => auth0.config).toThrowError(ConfigurationError);
     });
 
-    it('throws ConfigurationError when secret is missing', () => {
+    it('does not throw on construction when secret is missing — throws on first use', () => {
       const { secret: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrowError(ConfigurationError);
+      const auth0 = new Auth0Server(rest);
+      expect(() => auth0.config).toThrowError(ConfigurationError);
     });
 
     it('does not throw when appBaseUrl is missing (inferred from request at runtime)', () => {
       const { appBaseUrl: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).not.toThrow();
+      expect(() => new Auth0Server(rest).config).not.toThrow();
     });
 
     it('error message names the missing env var', () => {
       const { domain: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrow('AUTH0_DOMAIN');
+      expect(() => new Auth0Server(rest).config).toThrow('AUTH0_DOMAIN');
     });
 
     it('error message tells the developer where to find the value', () => {
       const { domain: _, ...rest } = validConfig;
-      expect(() => new Auth0Server(rest)).toThrow('Auth0 Dashboard');
+      expect(() => new Auth0Server(rest).config).toThrow('Auth0 Dashboard');
     });
 
     it('error message lists ALL missing fields at once', () => {
       try {
-        new Auth0Server({});
+        new Auth0Server({}).config;
         expect.fail('should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(ConfigurationError);
@@ -142,7 +146,7 @@ describe('Auth0Server', () => {
 
     it('thrown error has statusCode 500', () => {
       try {
-        new Auth0Server({});
+        new Auth0Server({}).config;
         expect.fail('should have thrown');
       } catch (err) {
         expect((err as ConfigurationError).statusCode).toBe(500);
