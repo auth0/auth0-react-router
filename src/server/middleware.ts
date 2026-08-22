@@ -1,6 +1,11 @@
 import { createContext } from 'react-router';
 import type { MiddlewareFunction, RouterContext } from 'react-router';
 import {
+  defineRouteHandle,
+  type DefineRouteAuthOptions,
+  type RouteAuthHandle
+} from './route-handle.js';
+import {
   BearerTokenError,
   ConfigurationError,
   InsufficientScopeError
@@ -261,31 +266,8 @@ function getOptionalContext<T>(
 
 // ─── defineRouteAuth ──────────────────────────────────────────────────────────
 
-export interface DefineRouteAuthOptions {
-  /**
-   * Required role(s). Throws InsufficientScopeError (403) if the authenticated
-   * user does not hold all of the specified roles.
-   */
-  role?: string | string[];
-  /**
-   * The user claim that holds the roles array.
-   * Defaults to 'https://auth0.com/claims/roles'.
-   */
-  rolesClaim?: string;
-}
-
-/**
- * The route handle shape written by defineRouteAuth.
- * Readable in any component via useMatches() — useful for showing a lock icon
- * on protected routes or building breadcrumbs that are auth-aware.
- *
- * @example
- * const matches = useMatches();
- * const isProtected = matches.some(m => (m.handle as RouteAuthHandle)?.auth);
- */
-export interface RouteAuthHandle {
-  auth: DefineRouteAuthOptions;
-}
+export type { DefineRouteAuthOptions, RouteAuthHandle } from './route-handle.js';
+export { defineRouteHandle } from './route-handle.js';
 
 const DEFAULT_ROLES_CLAIM = 'https://auth0.com/claims/roles';
 
@@ -321,7 +303,7 @@ export function defineRouteAuth(opts?: DefineRouteAuthOptions): {
 } {
   assertMiddlewareSupported();
   return {
-    handle: { auth: opts ?? {} },
+    handle: defineRouteHandle(opts),
     middleware: [
       async ({ request, context }, next) => {
         // Read from context if auth0Middleware already ran; otherwise decrypt now.

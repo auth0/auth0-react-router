@@ -47,7 +47,9 @@ export {
   getClaimsFromContext,
   requireClaimsFromContext
 } from './middleware.js';
-export type { DefineRouteAuthOptions, RouteAuthHandle } from './middleware.js';
+
+export { defineRouteHandle } from './route-handle.js';
+export type { DefineRouteAuthOptions, RouteAuthHandle } from './route-handle.js';
 
 export { getClaims, requireClaims } from './api.js';
 export type { RequireClaimsOptions } from './api.js';
