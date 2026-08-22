@@ -60,6 +60,24 @@ export function _setAuth0Instance(instance: Auth0Server | undefined): void {
   _instance = instance;
 }
 
+/**
+ * Registers your Auth0Server instance as the singleton used by standalone
+ * helpers (getSession, requireSession, getAccessToken, updateSession,
+ * deleteSession, etc.).
+ *
+ * Call this once at app startup, after constructing your Auth0Server instance,
+ * so that hooks registered on it (onCallback, beforeSessionSaved) are honoured
+ * during token refresh and session writes triggered by the standalone helpers.
+ *
+ * @example
+ * // auth0.server.ts
+ * export const auth0 = new Auth0Server({ onCallback, beforeSessionSaved });
+ * registerAuth0Instance(auth0);
+ */
+export function registerAuth0Instance(instance: Auth0Server): void {
+  _instance = instance;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -181,11 +199,23 @@ const accessTokenCache = new WeakMap<Request, Promise<string>>();
  * If the token is expired, it is silently refreshed using the refresh token.
  * Parallel calls within the same request share a single refresh operation.
  *
+ * **Token refresh prerequisites** — silent refresh only works when all three of
+ * the following are configured:
+ *
+ * 1. `AUTH0_SCOPE` (or the `scope` constructor option) includes `offline_access`.
+ * 2. The Auth0 application has **Allow Offline Access** enabled
+ *    (Dashboard → Applications → [your app] → Settings → scroll to "Refresh Token").
+ * 3. The **Refresh Token** grant is enabled on the same settings page.
+ *
+ * If a refresh token is absent, `getAccessToken` throws a `TokenError`. The error
+ * message will indicate that no refresh token is available.
+ *
  * Note: when a refresh occurs, the updated session cookie is written internally
- * but is not automatically propagated to the browser response. Add
- * auth0Middleware (Story 5) to have the refreshed cookie forwarded automatically.
- * Without middleware, the token is still returned correctly but the refresh will
- * repeat on every request until the session is explicitly persisted.
+ * but is not automatically propagated to the browser response. Mount
+ * `auth0Middleware` on the root route to have the refreshed cookie forwarded
+ * automatically. Without middleware, the token is still returned correctly but
+ * the refresh will repeat on every request until the session is explicitly
+ * persisted.
  *
  * @throws {TokenError} When no session exists or the token cannot be retrieved.
  */
@@ -270,8 +300,19 @@ export async function updateSession(
  * Returns a Response whose Set-Cookie headers expire the session cookie.
  * The user's Auth0 SSO session is NOT terminated — use handleLogout for that.
  *
+ * **Important:** always redirect to a public page after calling `deleteSession`.
+ * If you call it from a protected route's action (one guarded by `requireSession`
+ * or `defineRouteAuth`), React Router will re-run the loader after the action
+ * completes. The loader will redirect to `/auth/login?returnTo=/page.data`
+ * because the session is now gone. Return a redirect to a public page instead:
+ *
  * @example
- * return deleteSession(request);
+ * export const action = async ({ request }) => {
+ *   const response = await deleteSession(request);
+ *   // Redirect to a public page — do NOT return the bare deleteSession response
+ *   // from a protected route or the loader will redirect to /auth/login?returnTo=/page.data
+ *   return redirect('/', { headers: response.headers });
+ * };
  */
 export async function deleteSession(request: Request): Promise<Response> {
   const auth0 = getInstance();

@@ -178,8 +178,11 @@ export class HookedStateStore {
  * The main entry point for the Auth0 React Router SDK (server side).
  *
  * Create once when your app starts — not on every request.
- * The constructor makes zero network calls. OIDC discovery is deferred
- * to the first auth operation.
+ * The constructor stores options without validating them, so a missing env var
+ * does not crash unrelated routes at module load time. Configuration is
+ * validated and the internal clients are initialised on the first auth
+ * operation (login, callback, getSession, etc.), at which point a
+ * ConfigurationError is thrown if anything is missing.
  *
  * @example
  * // auth0.server.ts
@@ -190,45 +193,71 @@ export class HookedStateStore {
 const STATE_IDENTIFIER = '__a0_session';
 
 export class Auth0Server {
-  readonly serverClient: ServerClient<StoreOptions>;
-  readonly stateStore: HookedStateStore;
   readonly stateIdentifier = STATE_IDENTIFIER;
-  readonly config: ResolvedAuth0ServerConfig;
   readonly onCallback?: (session: Auth0Session) => void | Promise<void>;
 
+  private readonly _options: Auth0ServerConfig;
+  private _config?: ResolvedAuth0ServerConfig;
+  private _serverClient?: ServerClient<StoreOptions>;
+  private _stateStore?: HookedStateStore;
+
   constructor(options: Auth0ServerConfig = {}) {
-    // Resolve and validate config — throws ConfigurationError if anything is missing
-    this.config = resolveConfig(options);
+    // Store options without validating — validation is deferred to first use so
+    // that a missing env var does not crash unrelated routes at module load time.
+    this._options = options;
     this.onCallback = options.onCallback;
+  }
+
+  private _init(): void {
+    if (this._config) return;
+
+    // Resolve and validate config — throws ConfigurationError if anything is missing.
+    // Called lazily on the first auth operation (login, callback, getSession, etc.).
+    this._config = resolveConfig(this._options);
 
     // One shared cookie handler — both stores use the same instance
     const cookieHandler = new ReactRouterCookieHandler();
 
     // Holds temporary login state (PKCE, nonce, state) during the login flow
     const transactionStore = new CookieTransactionStore<StoreOptions>(
-      { secret: this.config.secret },
+      { secret: this._config.secret },
       cookieHandler
     );
 
     // Wraps the stateless store to apply beforeSessionSaved and capture session data for onCallback
     const innerStore = new StatelessStateStore<StoreOptions>(
-      { secret: this.config.secret },
+      { secret: this._config.secret },
       cookieHandler
     );
-    this.stateStore = new HookedStateStore(innerStore, options.beforeSessionSaved);
+    this._stateStore = new HookedStateStore(innerStore, this._options.beforeSessionSaved);
 
     // ServerClient is stateless — no network calls happen here
-    this.serverClient = new ServerClient<StoreOptions>({
-      domain: this.config.domain,
-      clientId: this.config.clientId,
-      clientSecret: this.config.clientSecret,
+    this._serverClient = new ServerClient<StoreOptions>({
+      domain: this._config.domain,
+      clientId: this._config.clientId,
+      clientSecret: this._config.clientSecret,
       authorizationParams: {
-        scope: this.config.scope,
-        ...(this.config.audience ? { audience: this.config.audience } : {})
+        scope: this._config.scope,
+        ...(this._config.audience ? { audience: this._config.audience } : {})
       },
       transactionStore,
-      stateStore: this.stateStore,
+      stateStore: this._stateStore,
       stateIdentifier: STATE_IDENTIFIER
     });
+  }
+
+  get config(): ResolvedAuth0ServerConfig {
+    this._init();
+    return this._config!;
+  }
+
+  get serverClient(): ServerClient<StoreOptions> {
+    this._init();
+    return this._serverClient!;
+  }
+
+  get stateStore(): HookedStateStore {
+    this._init();
+    return this._stateStore!;
   }
 }

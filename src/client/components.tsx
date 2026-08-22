@@ -68,6 +68,13 @@ export function RequireRole({
 }: RequireRoleProps) {
   const { user, isAuthenticated } = useAuth0();
 
+  // Error boundaries are a client-only React mechanism. Throwing during SSR
+  // bypasses Auth0ErrorBoundary and surfaces at the framework root error handler.
+  // Return null on the server and defer the role check to the client after hydration.
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   if (!isAuthenticated || !user) {
     throw new InsufficientScopeError('Insufficient permissions.');
   }

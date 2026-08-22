@@ -122,7 +122,7 @@ the constructor.
 | `AUTH0_CLIENT_ID`      | Application client ID                                           |
 | `AUTH0_CLIENT_SECRET`  | Application client secret                                       |
 | `AUTH0_SESSION_SECRET` | Random string (min 32 chars) used to encrypt the session cookie |
-| `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com`                |
+| `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com` (optional — inferred from `request.url` at runtime, but should be set explicitly in production when running behind a reverse proxy) |
 | `AUTH0_AUDIENCE`       | API audience, if requesting access tokens for an API (optional) |
 | `AUTH0_SCOPE`          | OAuth scopes, defaults to `openid profile email` (optional)     |
 
@@ -232,6 +232,12 @@ function Header() {
 }
 ```
 
+> **Note:** `RequireAuth`, `RequireRole`, `withAuthenticationRequired`, `SignedIn`, and `SignedOut`
+> are client-only components. The server always renders HTTP 200 for the page — these components
+> only control what is shown after hydration. For real server-side protection (blocking the response
+> entirely) use `requireSession` or `requireUser` in the route loader, or `defineRouteAuth`
+> middleware.
+
 **Role-based access** — use `defineRouteAuth` to enforce a role at the route level:
 
 ```ts
@@ -251,6 +257,22 @@ export const loader = ({ context }) => {
 };
 ```
 
+Both `auth0SessionContext` and `auth0UserContext` follow the same pattern — call
+`context.get(key)`, not `key.get(context)`:
+
+```ts
+import {
+  auth0SessionContext,
+  auth0UserContext
+} from '@auth0/auth0-react-router/server';
+
+export const loader = ({ context }) => {
+  const session = context.get(auth0SessionContext); // Auth0Session | null
+  const user    = context.get(auth0UserContext);    // Auth0User | null
+  return { user };
+};
+```
+
 Requests without the required role receive a `403`. Roles are read from the
 `https://auth0.com/claims/roles` claim by default; pass `rolesClaim` to override.
 
@@ -261,6 +283,11 @@ Requests without the required role receive a `403`. Roles are read from the
   the per-loader helpers (`getSession`, `requireSession`, etc.) instead.
 - **DPoP** (sender-constrained tokens) is not supported. It is planned once the underlying
   `@auth0/auth0-server-js` foundation gains native support.
+- **`AUTH0_AUDIENCE` restrictions** — the audience value cannot use an `.auth0.com` domain; Auth0
+  reserves those. Use the identifier of an API you have registered in your tenant
+  (Dashboard → Applications → APIs → Create API). After creating the API, also authorize your
+  application on the API's **Machine to Machine Applications** tab, otherwise login fails with
+  "Client is not authorized to access resource server".
 
 ## Security considerations
 
