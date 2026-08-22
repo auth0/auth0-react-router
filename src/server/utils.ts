@@ -210,6 +210,30 @@ const accessTokenCache = new WeakMap<Request, Promise<string>>();
  * If a refresh token is absent, `getAccessToken` throws a `TokenError`. The error
  * message will indicate that no refresh token is available.
  *
+ * **Handling an expired refresh token** — when the refresh token itself has
+ * expired or been revoked, `getAccessToken` throws a `TokenError`. The session
+ * cookie is still present in the browser but the tokens inside are no longer
+ * usable. Clear the stale session and redirect the user to login:
+ *
+ * @example
+ * import { getAccessToken, deleteSession } from '@auth0/auth0-react-router/server';
+ * import { TokenError } from '@auth0/auth0-react-router/errors';
+ * import { redirect } from 'react-router';
+ *
+ * export const loader = async ({ request }) => {
+ *   let token: string;
+ *   try {
+ *     token = await getAccessToken(request);
+ *   } catch (err) {
+ *     if (err instanceof TokenError) {
+ *       const response = await deleteSession(request);
+ *       throw redirect('/auth/login', { headers: response.headers });
+ *     }
+ *     throw err;
+ *   }
+ *   // use token to call your API...
+ * };
+ *
  * Note: when a refresh occurs, the updated session cookie is written internally
  * but is not automatically propagated to the browser response. Mount
  * `auth0Middleware` on the root route to have the refreshed cookie forwarded
