@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Auth0Server, HookedStateStore } from '../../src/server/auth0-server.js';
+import type { Auth0ServerConfig } from '../../src/server/auth0-server.js';
 import { ConfigurationError } from '../../src/errors/index.js';
 import type { Auth0Session } from '../../src/types/index.js';
 
@@ -91,6 +92,10 @@ describe('Auth0Server', () => {
   // ─── ConfigurationError ─────────────────────────────────────────────────────
 
   describe('ConfigurationError', () => {
+    // Triggers lazy init — a plain property access is flagged by no-unused-expressions,
+    // so we wrap it in a function call that ESLint recognises as intentional.
+    const initConfig = (opts: Auth0ServerConfig = {}) => new Auth0Server(opts).config;
+
     it('does not throw on construction when domain is missing — throws on first use', () => {
       const { domain: _, ...rest } = validConfig;
       const auth0 = new Auth0Server(rest);
@@ -132,7 +137,7 @@ describe('Auth0Server', () => {
 
     it('error message lists ALL missing fields at once', () => {
       try {
-        new Auth0Server({}).config;
+        initConfig();
         expect.fail('should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(ConfigurationError);
@@ -146,7 +151,7 @@ describe('Auth0Server', () => {
 
     it('thrown error has statusCode 500', () => {
       try {
-        new Auth0Server({}).config;
+        initConfig();
         expect.fail('should have thrown');
       } catch (err) {
         expect((err as ConfigurationError).statusCode).toBe(500);
