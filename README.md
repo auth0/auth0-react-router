@@ -407,6 +407,11 @@ those helpers will always return `null` or redirect to login. Use the client-sid
   (Dashboard → Applications → APIs → Create API). After creating the API, also authorize your
   application on the API's **Machine to Machine Applications** tab, otherwise login fails with
   "Client is not authorized to access resource server".
+- **Hybrid mode (both `AUTH0_*` and `VITE_*` set) is not supported** — when both sets of
+  environment variables are present, `Auth0Provider` activates SPA mode but the server-side JWE
+  session cookie is also present. SPA logout clears the in-browser token cache but does not clear
+  the cookie, so routes guarded by `requireSession` continue to serve content after logout. Run the
+  app in one mode only: set either `AUTH0_*` (SSR) or `VITE_*` (SPA) variables, not both.
 
 ## Security considerations
 
