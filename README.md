@@ -16,6 +16,7 @@ with the rest of the Auth0 ecosystem.
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Protecting routes](#protecting-routes)
+- [Calling APIs with access tokens](#calling-apis-with-access-tokens)
 - [Known limitations](#known-limitations)
 - [Security considerations](#security-considerations)
 - [Feedback](#feedback)
@@ -277,6 +278,52 @@ export const loader = ({ context }) => {
 
 Requests without the required role receive a `403`. Roles are read from the
 `https://auth0.com/claims/roles` claim by default; pass `rolesClaim` to override.
+
+## Calling APIs with access tokens
+
+Use `getAccessToken` in a loader or action to retrieve a valid access token for the current user.
+If the token is expired it is silently refreshed using the refresh token before being returned.
+
+```ts
+import { getAccessToken } from '@auth0/auth0-react-router/server';
+import { deleteSession } from '@auth0/auth0-react-router/server';
+import { TokenError } from '@auth0/auth0-react-router/errors';
+import { redirect } from 'react-router';
+
+export const loader = async ({ request }) => {
+  let token: string;
+  try {
+    token = await getAccessToken(request);
+  } catch (err) {
+    if (err instanceof TokenError) {
+      // Refresh token missing or expired — clear the stale session and re-authenticate
+      return deleteSession(request, { redirectTo: '/auth/login' });
+    }
+    throw err;
+  }
+
+  const data = await fetch('https://api.example.com/items', {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(r => r.json());
+
+  return { data };
+};
+```
+
+### Token refresh prerequisites
+
+Silent refresh only works when **all three** of the following are configured. If any are missing,
+`getAccessToken` throws a `TokenError` with the message
+`"The access token has expired and a refresh token was not provided"`.
+
+1. **`AUTH0_SCOPE` includes `offline_access`** — add it to your `.env`:
+   ```
+   AUTH0_SCOPE=openid profile email offline_access
+   ```
+2. **Allow Offline Access is enabled on the API** — Auth0 Dashboard → Applications → APIs →
+   select your API → Settings → enable **Allow Offline Access**.
+3. **Refresh Token grant is enabled on the application** — Auth0 Dashboard → Applications →
+   select your app → Settings → Advanced Settings → Grant Types → check **Refresh Token**.
 
 ## Known limitations
 
