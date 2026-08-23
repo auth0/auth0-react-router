@@ -118,8 +118,8 @@ export function SignedIn({ children }: { children: ReactNode }) {
  * Renders children only when the user is not authenticated.
  */
 export function SignedOut({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth0();
-  return !isAuthenticated ? <>{children}</> : null;
+  const { isAuthenticated, isLoading } = useAuth0();
+  return !isLoading && !isAuthenticated ? <>{children}</> : null;
 }
 
 /**
