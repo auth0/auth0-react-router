@@ -125,7 +125,7 @@ the constructor.
 | `AUTH0_CLIENT_SECRET`  | Application client secret                                       |
 | `AUTH0_SESSION_SECRET` | Random string (min 32 chars) used to encrypt the session cookie |
 | `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com` (optional — inferred from `request.url` at runtime, but should be set explicitly in production when running behind a reverse proxy) |
-| `AUTH0_AUDIENCE`       | API audience, if requesting access tokens for an API (optional) |
+| `AUTH0_AUDIENCE`       | API audience for access tokens (optional). Without this, `getAccessToken` returns an opaque token that API servers cannot validate. Set it to the identifier of your registered API (e.g. `https://api.example.com`) to receive a signed RS256 JWT instead. |
 | `AUTH0_SCOPE`          | OAuth scopes, defaults to `openid profile email` (optional)     |
 
 **2. Register the auth routes:**
