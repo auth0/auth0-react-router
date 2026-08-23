@@ -382,6 +382,24 @@ exchanges it for a new access token on every page load — no login prompt neede
 > this if your application has strong XSS mitigations in place. When in doubt, keep the default
 > `memory` cache and accept that sessions do not survive a hard refresh.
 
+### `useUser()` returns profile fields only in SPA mode
+
+`useUser()` works in both modes but the shape of the user object differs because the two providers
+populate it from different sources.
+
+In **RWA mode** the user comes from the server-side session, which stores the full decoded ID token.
+In **SPA mode** it comes from `auth0-spa-js`'s `getUser()`, which returns UserInfo profile claims
+only and strips JWT metadata automatically.
+
+| Claim | RWA | SPA |
+| ----- | --- | --- |
+| `sub`, `email`, `name`, `picture` | ✅ | ✅ |
+| Custom claims (e.g. roles) | ✅ | ✅ |
+| `iss`, `aud`, `iat`, `exp`, `sid` | ✅ | ❌ |
+
+If your code reads JWT metadata claims directly from `useUser()`, those fields will be `undefined`
+in SPA mode. Use `useAuth0().getIdTokenClaims()` if you need the full ID token payload.
+
 ### Server helpers are not available in SPA mode
 
 `getSession`, `requireSession`, `getUser`, `requireUser`, and `getAccessToken` are server-side
