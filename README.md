@@ -352,6 +352,38 @@ The same `Auth0Provider`, hooks, and components work in both modes. The provider
 > cannot be validated by an API server. Set `VITE_AUTH0_AUDIENCE` to the identifier of your
 > registered API and it returns a signed RS256 JWT instead.
 
+### Handling the loading state
+
+In SPA mode the SDK initialises asynchronously — `isLoading` is `true` until `auth0-spa-js`
+finishes restoring the session. During this window `SignedIn`, `SignedOut`, and `RequireRole` all
+render nothing to avoid a flash of incorrect UI.
+
+Use `AuthLoading` to show a spinner or placeholder while auth state is being resolved:
+
+```tsx
+import { AuthLoading, SignedIn, SignedOut, LoginButton, LogoutButton } from '@auth0/auth0-react-router';
+
+function Header() {
+  return (
+    <nav>
+      <AuthLoading>
+        <span>Loading...</span>
+      </AuthLoading>
+      <SignedIn>
+        <LogoutButton />
+      </SignedIn>
+      <SignedOut>
+        <LoginButton />
+      </SignedOut>
+    </nav>
+  );
+}
+```
+
+Without `AuthLoading`, the nav will be empty during init and then snap to the correct state once
+loading completes. On fast connections the gap is imperceptible; on slow connections or cold loads
+it is visible.
+
 ### Persistent sessions
 
 By default tokens are stored in **memory** and lost on page refresh — the user has to log in again.
