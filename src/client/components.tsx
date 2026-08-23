@@ -66,7 +66,19 @@ export function RequireRole({
   rolesClaim = DEFAULT_ROLES_CLAIM,
   children
 }: RequireRoleProps) {
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuthenticated, isLoading } = useAuth0();
+
+  // Error boundaries are a client-only React mechanism. Throwing during SSR
+  // bypasses Auth0ErrorBoundary and surfaces at the framework root error handler.
+  // Return null on the server and defer the role check to the client after hydration.
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  // In SPA mode, isLoading is true during SDK initialisation. Throwing here
+  // would cause Auth0ErrorBoundary to render the error fallback for every user
+  // before auth state is known — including users who do have the required role.
+  if (isLoading) return null;
 
   // Error boundaries are a client-only React mechanism. Throwing during SSR
   // bypasses Auth0ErrorBoundary and surfaces at the framework root error handler.
