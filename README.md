@@ -17,6 +17,7 @@ with the rest of the Auth0 ecosystem.
 - [Quick start](#quick-start)
 - [Protecting routes](#protecting-routes)
 - [Calling APIs with access tokens](#calling-apis-with-access-tokens)
+- [SPA mode](#spa-mode)
 - [Known limitations](#known-limitations)
 - [Security considerations](#security-considerations)
 - [Feedback](#feedback)
@@ -324,6 +325,75 @@ Silent refresh only works when **all three** of the following are configured. If
    select your API → Settings → enable **Allow Offline Access**.
 3. **Refresh Token grant is enabled on the application** — Auth0 Dashboard → Applications →
    select your app → Settings → Advanced Settings → Grant Types → check **Refresh Token**.
+
+## SPA mode
+
+SPA mode is activated automatically when `VITE_AUTH0_DOMAIN` and `VITE_AUTH0_CLIENT_ID` are both
+set in your Vite environment. No `Auth0Server`, no loaders, no server session — the full OIDC flow
+runs in the browser via `@auth0/auth0-spa-js`.
+
+The same `Auth0Provider`, hooks, and components work in both modes. The provider detects the
+`VITE_*` variables at render time and switches to the SPA-backed implementation internally.
+
+**Environment variables:**
+
+| Variable                                | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `VITE_AUTH0_DOMAIN`                     | Your Auth0 tenant domain — activates SPA mode when set alongside client ID   |
+| `VITE_AUTH0_CLIENT_ID`                  | Application client ID                                                         |
+| `VITE_AUTH0_REDIRECT_URI`               | Callback URL (optional — defaults to `window.location.origin`)               |
+| `VITE_AUTH0_AUDIENCE`                   | API audience for RS256 access tokens (optional — see note below)             |
+| `VITE_AUTH0_SCOPE`                      | OAuth scopes (optional — defaults to `openid profile email`)                 |
+| `VITE_AUTH0_CACHE_LOCATION`             | Token cache: `memory` (default) or `localstorage`                            |
+| `VITE_AUTH0_USE_REFRESH_TOKENS`         | Enable refresh tokens (optional — defaults to `true`)                        |
+| `VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK`| Fall back to silent iframe SSO if refresh token is absent (optional)         |
+
+> **API tokens** — without `VITE_AUTH0_AUDIENCE`, `getAccessToken()` returns an opaque token that
+> cannot be validated by an API server. Set `VITE_AUTH0_AUDIENCE` to the identifier of your
+> registered API and it returns a signed RS256 JWT instead.
+
+### Persistent sessions
+
+By default tokens are stored in **memory** and lost on page refresh — the user has to log in again.
+This is the secure default: in-memory tokens are not accessible to XSS attacks.
+
+To persist sessions across page refreshes, three steps are required:
+
+**1. Enable Offline Access on your Auth0 API**
+
+Auth0 Dashboard → Applications → APIs → [your API] → Settings → **Allow Offline Access** → ON
+
+**2. Enable the Refresh Token grant on your application**
+
+Auth0 Dashboard → Applications → [your app] → Settings → Advanced Settings → Grant Types →
+**Refresh Token** → checked
+
+**3. Set these variables in your `.env`**
+
+```sh
+VITE_AUTH0_CACHE_LOCATION=localstorage
+VITE_AUTH0_SCOPE=openid profile email offline_access
+```
+
+With this in place, `auth0-spa-js` stores the refresh token in `localStorage` and silently
+exchanges it for a new access token on every page load — no login prompt needed.
+
+> **Security note:** `localstorage` tokens are readable by any JavaScript on the page. Only use
+> this if your application has strong XSS mitigations in place. When in doubt, keep the default
+> `memory` cache and accept that sessions do not survive a hard refresh.
+
+### Server helpers are not available in SPA mode
+
+`getSession`, `requireSession`, `getUser`, `requireUser`, and `getAccessToken` are server-side
+utilities that read the encrypted JWE session cookie. In a pure SPA there is no session cookie —
+those helpers will always return `null` or redirect to login. Use the client-side hooks instead:
+
+| Instead of (server) | Use (client) |
+| ------------------- | ------------ |
+| `getSession(request)` | `useSession()` |
+| `getUser(request)` | `useUser()` |
+| `getAccessToken(request)` | `useAuth0().getAccessToken()` |
+| `requireSession(request)` | `RequireAuth` component |
 
 ## Known limitations
 
