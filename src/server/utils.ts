@@ -328,22 +328,30 @@ export async function updateSession(
  * If you call it from a protected route's action (one guarded by `requireSession`
  * or `defineRouteAuth`), React Router will re-run the loader after the action
  * completes. The loader will redirect to `/auth/login?returnTo=/page.data`
- * because the session is now gone. Return a redirect to a public page instead:
+ * because the session is now gone. Pass `redirectTo` to return a 302 directly:
  *
  * @example
  * export const action = async ({ request }) => {
- *   const response = await deleteSession(request);
- *   // Redirect to a public page — do NOT return the bare deleteSession response
- *   // from a protected route or the loader will redirect to /auth/login?returnTo=/page.data
- *   return redirect('/', { headers: response.headers });
+ *   return deleteSession(request, { redirectTo: '/' });
  * };
  */
-export async function deleteSession(request: Request): Promise<Response> {
+export async function deleteSession(
+  request: Request,
+  options?: { redirectTo?: string }
+): Promise<Response> {
   const auth0 = getInstance();
   const cookieJar = new Response();
   const storeOptions = { request, response: cookieJar };
 
   await auth0.stateStore.delete(auth0.stateIdentifier, storeOptions);
+
+  if (options?.redirectTo) {
+    const headers = new Headers({ Location: options.redirectTo });
+    for (const cookie of cookieJar.headers.getSetCookie()) {
+      headers.append('Set-Cookie', cookie);
+    }
+    return new Response(null, { status: 302, headers });
+  }
 
   return cookieJar;
 }

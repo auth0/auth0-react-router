@@ -410,6 +410,30 @@ describe('deleteSession', () => {
     const result = await deleteSession(makeRequest('http://localhost:3000/'));
     expect(result).toBeInstanceOf(Response);
   });
+
+  it('returns a 302 redirect when redirectTo is provided', async () => {
+    const result = await deleteSession(makeRequest('http://localhost:3000/'), {
+      redirectTo: '/'
+    });
+    expect(result.status).toBe(302);
+    expect(result.headers.get('Location')).toBe('/');
+  });
+
+  it('carries Set-Cookie headers on the redirect response', async () => {
+    const auth0 = makeAuth0();
+    _setAuth0Instance(auth0);
+    (auth0.stateStore.delete as ReturnType<typeof vi.fn>).mockImplementationOnce(
+      async (_id: string, opts: { response: Response }) => {
+        opts.response.headers.append('Set-Cookie', 'session=; Max-Age=0; Path=/');
+      }
+    );
+
+    const result = await deleteSession(makeRequest('http://localhost:3000/'), {
+      redirectTo: '/'
+    });
+
+    expect(result.headers.getSetCookie()).toContain('session=; Max-Age=0; Path=/');
+  });
 });
 
 // ─── createApiClient ──────────────────────────────────────────────────────────
