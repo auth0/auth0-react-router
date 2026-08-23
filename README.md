@@ -43,7 +43,7 @@ code never enters the server bundle.
 
 | Import path                                               | Contents                                                             |
 | --------------------------------------------------------- | -------------------------------------------------------------------- |
-| `@auth0/auth0-react-router` (root, resolves to `/client`) | Provider, hooks, UI components, route guards                         |
+| `@auth0/auth0-react-router` (root, resolves to `/client`) | Provider, hooks, UI components, route guards, `defineRouteHandle`   |
 | `@auth0/auth0-react-router/server`                        | `Auth0Server` class, handlers, session and token helpers, middleware |
 | `@auth0/auth0-react-router/errors`                        | Typed error classes                                                  |
 | `@auth0/auth0-react-router/types`                         | TypeScript types                                                     |
@@ -238,18 +238,20 @@ function Header() {
 > entirely) use `requireSession` or `requireUser` in the route loader, or `defineRouteAuth`
 > middleware.
 
-**Role-based access** — use `defineRouteAuth` to enforce a role at the route level:
+**Role-based access** — use `defineRouteAuth` to enforce a role at the route level.
+
+Route files export both `handle` (read client-side by `useMatches`) and `middleware`
+(server-only). Import them from separate paths to keep the client bundle free of server code:
 
 ```ts
-import {
-  defineRouteAuth,
-  auth0UserContext
-} from '@auth0/auth0-react-router/server';
+import { defineRouteHandle } from '@auth0/auth0-react-router';
+import { defineRouteAuth, auth0UserContext } from '@auth0/auth0-react-router/server';
 
-const adminAuth = defineRouteAuth({ role: 'admin' });
+// handle comes from the client bundle — safe in browser
+export const handle = defineRouteHandle({ role: 'admin' });
 
-export const handle = adminAuth.handle;
-export const middleware = adminAuth.middleware;
+// middleware comes from /server — stripped from the client bundle by React Router
+export const middleware = defineRouteAuth({ role: 'admin' }).middleware;
 
 export const loader = ({ context }) => {
   const user = context.get(auth0UserContext);
