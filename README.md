@@ -395,6 +395,19 @@ those helpers will always return `null` or redirect to login. Use the client-sid
 | `getAccessToken(request)` | `useAuth0().getAccessToken()` |
 | `requireSession(request)` | `RequireAuth` component |
 
+### Auth0 Dashboard configuration notes
+
+**Logout `returnTo`** — the URL passed to `logout({ returnTo: '...' })` must be registered in the
+Auth0 Dashboard under Applications → [your app] → Settings → **Allowed Logout URLs**. Auth0
+validates the URL before redirecting — an unregistered URL results in an error page after logout.
+
+**Sign-up screen** — passing `screen_hint: "signup"` to `loginWithRedirect` shows the sign-up
+form instead of the login form, but requires two things:
+
+1. Your tenant must use **New Universal Login** (Auth0 Dashboard → Branding → Universal Login).
+2. Sign-ups must be enabled on the application (Auth0 Dashboard → Applications → [your app] →
+   Settings → scroll to "Application Login URI" section).
+
 ## Known limitations
 
 - **React Router middleware** — `auth0Middleware`, `bearerTokenMiddleware`, and `defineRouteAuth`
