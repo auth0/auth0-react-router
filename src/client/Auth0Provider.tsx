@@ -118,19 +118,19 @@ function SpaAuth0Provider({ children }: Auth0ProviderProps) {
       clientPromiseRef.current = import('@auth0/auth0-spa-js').then(
         ({ Auth0Client }) =>
           new Auth0Client({
-            domain: import.meta.env.VITE_AUTH0_DOMAIN as string,
-            clientId: import.meta.env.VITE_AUTH0_CLIENT_ID as string,
-            useRefreshTokens: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS !== 'false',
-            useRefreshTokensFallback: import.meta.env.VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK === 'true',
-            cacheLocation: (import.meta.env.VITE_AUTH0_CACHE_LOCATION as 'memory' | 'localstorage') ?? 'memory',
+            domain: import.meta.env?.VITE_AUTH0_DOMAIN as string,
+            clientId: import.meta.env?.VITE_AUTH0_CLIENT_ID as string,
+            useRefreshTokens: import.meta.env?.VITE_AUTH0_USE_REFRESH_TOKENS !== 'false',
+            useRefreshTokensFallback: import.meta.env?.VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK === 'true',
+            cacheLocation: (import.meta.env?.VITE_AUTH0_CACHE_LOCATION as 'memory' | 'localstorage') ?? 'memory',
             authorizationParams: {
               redirect_uri:
-                import.meta.env.VITE_AUTH0_REDIRECT_URI ??
+                import.meta.env?.VITE_AUTH0_REDIRECT_URI ??
                 window.location.origin,
-              ...(import.meta.env.VITE_AUTH0_AUDIENCE && {
-                audience: import.meta.env.VITE_AUTH0_AUDIENCE
+              ...(import.meta.env?.VITE_AUTH0_AUDIENCE && {
+                audience: import.meta.env?.VITE_AUTH0_AUDIENCE
               }),
-              scope: import.meta.env.VITE_AUTH0_SCOPE ?? 'openid profile email'
+              scope: import.meta.env?.VITE_AUTH0_SCOPE ?? 'openid profile email'
             }
           }) as SpaClient
       );
@@ -270,8 +270,8 @@ export function Auth0Provider({ children }: Auth0ProviderProps) {
   // (Vite inlines import.meta.env.VITE_* at the consumer's build time
   // regardless of where they appear in source, not just at the module top.)
   const isSpa = Boolean(
-    (import.meta.env.VITE_AUTH0_DOMAIN as string | undefined) &&
-    (import.meta.env.VITE_AUTH0_CLIENT_ID as string | undefined)
+    (import.meta.env?.VITE_AUTH0_DOMAIN as string | undefined) &&
+    (import.meta.env?.VITE_AUTH0_CLIENT_ID as string | undefined)
   );
   return isSpa ? (
     <SpaAuth0Provider>{children}</SpaAuth0Provider>
