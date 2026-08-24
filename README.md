@@ -21,6 +21,7 @@ with the rest of the Auth0 ecosystem.
 - [API resource server](#api-resource-server)
 - [Known limitations](#known-limitations)
 - [Security considerations](#security-considerations)
+- [Examples](./EXAMPLES.md)
 - [Feedback](#feedback)
 
 ## Installation
@@ -44,13 +45,14 @@ The SDK is one package with six entry points. Each entry point is tree-shakeable
 boundary is enforced by the `exports` map, so server code never enters the client bundle and client
 code never enters the server bundle.
 
-| Import path                                               | Contents                                                             |
-| --------------------------------------------------------- | -------------------------------------------------------------------- |
-| `@auth0/auth0-react-router` (root, resolves to `/client`) | Provider, hooks, UI components, route guards, `defineRouteHandle`   |
-| `@auth0/auth0-react-router/server`                        | `Auth0Server` class, handlers, session and token helpers, middleware |
-| `@auth0/auth0-react-router/errors`                        | Typed error classes                                                  |
-| `@auth0/auth0-react-router/types`                         | TypeScript types                                                     |
-| `@auth0/auth0-react-router/testing`                       | Test utilities, mock factories, test provider                        |
+| Import path                          | Contents                                                             |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `@auth0/auth0-react-router` (root)   | Alias for `/client` — the safe default for browser imports          |
+| `@auth0/auth0-react-router/client`   | Provider, hooks, UI components, route guards, `defineRouteHandle`   |
+| `@auth0/auth0-react-router/server`   | `Auth0Server` class, handlers, session and token helpers, middleware |
+| `@auth0/auth0-react-router/errors`   | Typed error classes                                                  |
+| `@auth0/auth0-react-router/types`    | TypeScript types                                                     |
+| `@auth0/auth0-react-router/testing`  | Test utilities, mock factories, test provider                        |
 
 The root import resolves to `/client`, the browser-safe surface, so the convenient path is also the
 safe one. Server-only APIs require the explicit `/server` import.
@@ -111,9 +113,10 @@ The minimal setup is three pieces.
 
 ```ts
 // app/auth0.server.ts
-import { Auth0Server } from '@auth0/auth0-react-router/server';
+import { Auth0Server, registerAuth0Instance } from '@auth0/auth0-react-router/server';
 
 export const auth0 = new Auth0Server();
+registerAuth0Instance(auth0);
 ```
 
 The instance reads configuration from environment variables. You can also pass values directly to
@@ -180,9 +183,22 @@ export default function Root() {
 }
 ```
 
-`Auth0Provider` reads the session via `useRouteLoaderData('root')`, which matches the route's
-`id` — the `id: 'root'` set on the route object in step 2. Make sure your root route has that id,
-otherwise the provider won't find the session.
+`rootAuthLoader` decrypts the session cookie and passes the auth state to `Auth0Provider` via
+React Router's loader data. `Auth0Provider` reads it with `useRouteLoaderData('root')`, so your
+root route must have the id `root`. With file-based routing React Router sets this automatically
+from the filename. With a custom route config, set it explicitly:
+
+```ts
+// app/routes.ts
+import { route, layout } from '@react-router/dev/routes';
+
+export default [
+  layout('root.tsx', { id: 'root' }, [
+    route('auth/*', 'routes/auth.$.tsx'),
+    // ...
+  ]),
+];
+```
 
 That is enough for working login, callback, and logout.
 
@@ -287,10 +303,8 @@ Use `getAccessToken` in a loader or action to retrieve a valid access token for 
 If the token is expired it is silently refreshed using the refresh token before being returned.
 
 ```ts
-import { getAccessToken } from '@auth0/auth0-react-router/server';
-import { deleteSession } from '@auth0/auth0-react-router/server';
+import { getAccessToken, deleteSession } from '@auth0/auth0-react-router/server';
 import { TokenError } from '@auth0/auth0-react-router/errors';
-import { redirect } from 'react-router';
 
 export const loader = async ({ request }) => {
   let token: string;
@@ -326,6 +340,7 @@ Silent refresh only works when **all three** of the following are configured. If
    select your API → Settings → enable **Allow Offline Access**.
 3. **Refresh Token grant is enabled on the application** — Auth0 Dashboard → Applications →
    select your app → Settings → Advanced Settings → Grant Types → check **Refresh Token**.
+
 ## API resource server
 
 React Router loaders and actions can also serve as API endpoints called by mobile apps, SPAs, or
@@ -359,6 +374,8 @@ from context in each loader — avoids repeated JWKS calls:
 ```ts
 // app/routes.ts
 import { route } from '@react-router/dev/routes';
+import { bearerTokenMiddleware } from '@auth0/auth0-react-router/server';
+
 export default [
   route('api/*', 'routes/api.$.tsx', {
     middleware: [bearerTokenMiddleware],
@@ -593,6 +610,18 @@ export const loader = async ({ request }) => {
 `AUTH0_CLIENT_SECRET` and `AUTH0_SESSION_SECRET` should never appear in logs. Treat
 them like passwords — load them from environment variables and keep them out of any
 debug or error output.
+
+### Protect your secrets
+
+- Never commit `AUTH0_CLIENT_SECRET` or `AUTH0_SESSION_SECRET` to version control. Add
+  `.env` to `.gitignore` and use your deployment platform's secret management to inject
+  them at runtime.
+- **`AUTH0_SESSION_SECRET` rotation** — changing this value invalidates all existing
+  session cookies immediately. Every logged-in user will be signed out on their next
+  request. Rotate it deliberately (e.g. after a suspected compromise), not routinely.
+- **`AUTH0_CLIENT_SECRET` rotation** — rotate via the Auth0 Dashboard (Applications →
+  your app → Settings → Rotate Secret). Update the environment variable in your
+  deployment before the old secret expires to avoid an outage.
 
 ## Feedback
 
