@@ -1,10 +1,13 @@
 import { ApiClient } from '@auth0/auth0-api-js';
-import {
-  BearerTokenError,
-  ConfigurationError,
-  InsufficientScopeError
-} from '../errors/index.js';
+import { ConfigurationError } from '../errors/index.js';
 import type { JWTClaims } from '../types/index.js';
+
+function jsonResponse(status: number, error: string, description: string): Response {
+  return new Response(
+    JSON.stringify({ error, error_description: description }),
+    { status, headers: { 'Content-Type': 'application/json' } }
+  );
+}
 
 // ─── Test injection ───────────────────────────────────────────────────────────
 
@@ -85,21 +88,32 @@ export async function getClaims(request: Request): Promise<JWTClaims | null> {
   }
 }
 
-/** Returns validated JWT claims. Throws BearerTokenError (401), InsufficientScopeError (403), or ConfigurationError (500) if AUTH0_DOMAIN or AUTH0_AUDIENCE is not configured. */
+/**
+ * Returns validated JWT claims.
+ *
+ * Throws a `Response` (401 or 403 JSON) that React Router forwards directly
+ * to the client — no try/catch needed in the loader.
+ *
+ * @throws {Response} 401 — missing or invalid Bearer token
+ * @throws {Response} 403 — token valid but missing required scope
+ * @throws {ConfigurationError} 500 — AUTH0_DOMAIN or AUTH0_AUDIENCE not set
+ */
 export async function requireClaims(
   request: Request,
   opts?: RequireClaimsOptions
 ): Promise<JWTClaims> {
   const token = extractBearerToken(request);
   if (!token)
-    throw new BearerTokenError('No Bearer token found in Authorization header');
+    throw jsonResponse(401, 'bearer_token_error', 'No Bearer token found in Authorization header');
 
   let claims: JWTClaims;
   try {
     claims = await verifyJwt(token);
   } catch (err) {
     if (err instanceof ConfigurationError) throw err;
-    throw new BearerTokenError(
+    throw jsonResponse(
+      401,
+      'bearer_token_error',
       err instanceof Error ? err.message : 'Bearer token verification failed'
     );
   }
@@ -108,9 +122,7 @@ export async function requireClaims(
     const required = Array.isArray(opts.scope) ? opts.scope : [opts.scope];
     const tokenScopes = claims.scope?.trim().split(/\s+/) ?? [];
     if (!required.every(s => tokenScopes.includes(s))) {
-      throw new InsufficientScopeError(
-        `Required scope(s): ${required.join(', ')}`
-      );
+      throw jsonResponse(403, 'insufficient_scope', `Required scope(s): ${required.join(', ')}`);
     }
   }
 
