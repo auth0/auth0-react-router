@@ -1,0 +1,577 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@auth0/auth0-react-router</title><meta name="description" content="Documentation for @auth0/auth0-react-router"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="index.html" class="title">@auth0/auth0-react-router</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<h1>@auth0/auth0-react-router</h1></div>
+<div class="tsd-panel tsd-typography"><h1 id="auth0auth0-react-router" class="tsd-anchor-link">@auth0/auth0-react-router<a href="#auth0auth0-react-router" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>Auth0 Authentication SDK for <a href="https://reactrouter.com/">React Router v7</a> applications.</p>
+<blockquote>
+<p><strong>Beta release.</strong> APIs may change before GA.</p>
+</blockquote>
+<p>The SDK is built on Auth0's foundational
+<a href="https://github.com/auth0/auth0-auth-js"><code>@auth0/auth0-server-js</code></a> package. It consumes the
+foundation rather than re-implementing OIDC, session, and token logic, so behavior stays consistent
+with the rest of the Auth0 ecosystem.</p>
+<h2 id="table-of-contents" class="tsd-anchor-link">Table of contents<a href="#table-of-contents" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#package-structure">Package structure</a></li>
+<li><a href="#features">Features</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#protecting-routes">Protecting routes</a></li>
+<li><a href="#calling-apis-with-access-tokens">Calling APIs with access tokens</a></li>
+<li><a href="#spa-mode">SPA mode</a></li>
+<li><a href="#api-resource-server">API resource server</a></li>
+<li><a href="#known-limitations">Known limitations</a></li>
+<li><a href="#security-considerations">Security considerations</a></li>
+<li><a href="#feedback">Feedback</a></li>
+</ul>
+<h2 id="installation" class="tsd-anchor-link">Installation<a href="#installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<pre><code class="sh"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">@auth0/auth0-react-router</span>
+</code><button type="button">Copy</button></pre>
+
+<p>This SDK relies on the following peer dependencies, which you install in your own app:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>react</code></td>
+<td><code>&gt;=18.0.0</code></td>
+</tr>
+<tr>
+<td><code>react-dom</code></td>
+<td><code>&gt;=18.0.0</code></td>
+</tr>
+<tr>
+<td><code>react-router</code></td>
+<td><code>&gt;=7.0.0</code></td>
+</tr>
+<tr>
+<td><code>@auth0/auth0-spa-js</code></td>
+<td><code>&gt;=2.0.0</code> (SPA mode only)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="package-structure" class="tsd-anchor-link">Package structure<a href="#package-structure" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The SDK is one package with six entry points. Each entry point is tree-shakeable and the bundle
+boundary is enforced by the <code>exports</code> map, so server code never enters the client bundle and client
+code never enters the server bundle.</p>
+<table>
+<thead>
+<tr>
+<th>Import path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@auth0/auth0-react-router</code> (root, resolves to <code>/client</code>)</td>
+<td>Provider, hooks, UI components, route guards, <code>defineRouteHandle</code></td>
+</tr>
+<tr>
+<td><code>@auth0/auth0-react-router/server</code></td>
+<td><code>Auth0Server</code> class, handlers, session and token helpers, middleware</td>
+</tr>
+<tr>
+<td><code>@auth0/auth0-react-router/errors</code></td>
+<td>Typed error classes</td>
+</tr>
+<tr>
+<td><code>@auth0/auth0-react-router/types</code></td>
+<td>TypeScript types</td>
+</tr>
+<tr>
+<td><code>@auth0/auth0-react-router/testing</code></td>
+<td>Test utilities, mock factories, test provider</td>
+</tr>
+</tbody>
+</table>
+<p>The root import resolves to <code>/client</code>, the browser-safe surface, so the convenient path is also the
+safe one. Server-only APIs require the explicit <code>/server</code> import.</p>
+<h3 id="api-style-free-functions-not-instance-methods" class="tsd-anchor-link">API style: free functions, not instance methods<a href="#api-style-free-functions-not-instance-methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Auth route handlers take the <code>Auth0Server</code> instance as their first argument —
+<code>handleLogin(auth0, request)</code>, <code>handleCallback(auth0, request)</code>. Session and token helpers that only
+need to read the encrypted cookie — <code>getSession(request)</code>, <code>getAccessToken(request)</code> — work from
+the request alone. This keeps each helper easy to use directly in a loader or action without
+threading the instance through every call site.</p>
+<h2 id="features" class="tsd-anchor-link">Features<a href="#features" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><strong>Authentication</strong></p>
+<ul>
+<li>Login, callback, and logout handled server-side with an encrypted JWE session cookie.</li>
+<li>Back-channel logout so Auth0 can end a user's session from the Dashboard or another app.</li>
+<li><code>handleAuth</code> on a splat route registers the full OIDC flow from a single file, or use the
+individual handlers (<code>handleLogin</code>, <code>handleCallback</code>, <code>handleLogout</code>) for custom paths.</li>
+</ul>
+<p><strong>Route protection</strong></p>
+<ul>
+<li><code>requireSession</code> and <code>requireUser</code> throw a <code>302</code> redirect from any loader when the user is not
+authenticated.</li>
+<li><code>defineRouteAuth</code> middleware enforces role-based access at the route level and stores the
+authenticated user in React Router context for downstream loaders.</li>
+<li><code>requireClaims</code> and <code>bearerTokenMiddleware</code> protect API routes that expect a Bearer token.</li>
+</ul>
+<p><strong>React hooks and components</strong></p>
+<ul>
+<li>Hooks: <code>useAuth0</code>, <code>useUser</code>, <code>useSession</code>.</li>
+<li>Conditional rendering: <code>SignedIn</code>, <code>SignedOut</code>, <code>AuthLoading</code>.</li>
+<li>Guards: <code>RequireAuth</code>, <code>RequireRole</code>.</li>
+<li>Pre-built buttons: <code>LoginButton</code>, <code>LogoutButton</code>.</li>
+</ul>
+<p><strong>Server-side tokens</strong></p>
+<ul>
+<li><code>getSession</code>, <code>getAccessToken</code>, <code>updateSession</code>, <code>deleteSession</code>, and <code>createApiClient</code> are
+available in loaders and actions. Tokens stay on the server and are never sent to the browser.</li>
+</ul>
+<p><strong>SPA mode</strong></p>
+<ul>
+<li>Optional client-side flow backed by <code>@auth0/auth0-spa-js</code>, auto-detected from
+<code>VITE_AUTH0_DOMAIN</code> and <code>VITE_AUTH0_CLIENT_ID</code>. No changes needed to <code>Auth0Provider</code>.</li>
+</ul>
+<p><strong>Testing utilities</strong></p>
+<ul>
+<li>Mock factories (<code>createMockUser</code>, <code>createMockSession</code>, <code>createMockTokenSet</code>), a drop-in <code>WithAuth</code>
+test provider, and loader helpers (<code>createMockLoader</code>, <code>createMockBearerRequest</code>) so you can test
+authenticated flows without a real Auth0 tenant.</li>
+</ul>
+<h2 id="quick-start" class="tsd-anchor-link">Quick start<a href="#quick-start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The minimal setup is three pieces.</p>
+<p><strong>1. Create one <code>Auth0Server</code> instance per app</strong> (not per request):</p>
+<pre><code class="ts"><span class="hl-3">// app/auth0.server.ts</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">Auth0Server</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">auth0</span><span class="hl-1"> = </span><span class="hl-6">new</span><span class="hl-1"> </span><span class="hl-0">Auth0Server</span><span class="hl-1">();</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The instance reads configuration from environment variables. You can also pass values directly to
+the constructor.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AUTH0_DOMAIN</code></td>
+<td>Your Auth0 tenant domain, e.g. <code>example.us.auth0.com</code></td>
+</tr>
+<tr>
+<td><code>AUTH0_CLIENT_ID</code></td>
+<td>Application client ID</td>
+</tr>
+<tr>
+<td><code>AUTH0_CLIENT_SECRET</code></td>
+<td>Application client secret</td>
+</tr>
+<tr>
+<td><code>AUTH0_SESSION_SECRET</code></td>
+<td>Random string (min 32 chars) used to encrypt the session cookie</td>
+</tr>
+<tr>
+<td><code>AUTH0_APP_BASE_URL</code></td>
+<td>Full URL of your app, e.g. <code>https://example.com</code> (optional — inferred from <code>request.url</code> at runtime, but should be set explicitly in production when running behind a reverse proxy)</td>
+</tr>
+<tr>
+<td><code>AUTH0_AUDIENCE</code></td>
+<td>API audience for access tokens (optional). Without this, <code>getAccessToken</code> returns an opaque token that API servers cannot validate. Set it to the identifier of your registered API (e.g. <code>https://api.example.com</code>) to receive a signed RS256 JWT instead.</td>
+</tr>
+<tr>
+<td><code>AUTH0_SCOPE</code></td>
+<td>OAuth scopes, defaults to <code>openid profile email</code> (optional)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. Register the auth routes:</strong></p>
+<p>Create a splat route file that handles all <code>/auth/*</code> paths:</p>
+<pre><code class="tsx"><span class="hl-3">// app/routes/auth.$.tsx</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">handleAuth</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">auth0</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;../auth0.server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> </span><span class="hl-0">handleAuth</span><span class="hl-1">(</span><span class="hl-5">auth0</span><span class="hl-1">, </span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">action</span><span class="hl-1">  = ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> </span><span class="hl-0">handleAuth</span><span class="hl-1">(</span><span class="hl-5">auth0</span><span class="hl-1">, </span><span class="hl-5">request</span><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Register it in your route config:</p>
+<pre><code class="ts"><span class="hl-3">// app/routes.ts</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">route</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@react-router/dev/routes&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-4">default</span><span class="hl-1"> [</span><br/><span class="hl-1">  </span><span class="hl-0">route</span><span class="hl-1">(</span><span class="hl-2">&#39;auth/*&#39;</span><span class="hl-1">, </span><span class="hl-2">&#39;routes/auth.$.tsx&#39;</span><span class="hl-1">),</span><br/><span class="hl-1">  </span><span class="hl-3">// ...</span><br/><span class="hl-1">];</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>handleAuth</code> dispatches internally to <code>handleLogin</code>, <code>handleCallback</code>, <code>handleLogout</code>, and
+<code>handleBackchannelLogout</code> based on the URL path and HTTP method.</p>
+<p><strong>3. Add the provider to the root layout:</strong></p>
+<pre><code class="tsx"><span class="hl-3">// app/root.tsx</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">Outlet</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;react-router&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">Auth0Provider</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">rootAuthLoader</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> </span><span class="hl-0">rootAuthLoader</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-4">default</span><span class="hl-1"> </span><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">Root</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> (</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;</span><span class="hl-9">html</span><span class="hl-1"> </span><span class="hl-10">lang</span><span class="hl-1">=</span><span class="hl-2">&quot;en&quot;</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-9">body</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-11">Auth0Provider</span><span class="hl-8">&gt;</span><br/><span class="hl-1">          </span><span class="hl-8">&lt;</span><span class="hl-11">Outlet</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;/</span><span class="hl-11">Auth0Provider</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-9">body</span><span class="hl-8">&gt;</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;/</span><span class="hl-9">html</span><span class="hl-8">&gt;</span><br/><span class="hl-1">  );</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>Auth0Provider</code> reads the session via <code>useRouteLoaderData('root')</code>, which matches the route's
+<code>id</code> — the <code>id: 'root'</code> set on the route object in step 2. Make sure your root route has that id,
+otherwise the provider won't find the session.</p>
+<p>That is enough for working login, callback, and logout.</p>
+<h2 id="protecting-routes" class="tsd-anchor-link">Protecting routes<a href="#protecting-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><strong>Server-side</strong> — call <code>requireSession</code> from a loader. It returns the session or throws a <code>302</code>
+redirect to <code>/auth/login</code> with a <code>returnTo</code> parameter so the user lands back where they started:</p>
+<pre><code class="ts"><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">requireSession</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = </span><span class="hl-6">async</span><span class="hl-1"> ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">session</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">requireSession</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> { </span><span class="hl-5">user:</span><span class="hl-1"> </span><span class="hl-5">session</span><span class="hl-1">.</span><span class="hl-5">user</span><span class="hl-1"> };</span><br/><span class="hl-1">};</span>
+</code><button type="button">Copy</button></pre>
+
+<p><strong>Client-side</strong> — wrap UI in <code>RequireAuth</code> or use the conditional rendering components:</p>
+<pre><code class="tsx"><span class="hl-4">import</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-5">RequireAuth</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-5">SignedIn</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-5">SignedOut</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-5">LoginButton</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-5">LogoutButton</span><br/><span class="hl-1">} </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">// redirect to login if not authenticated</span><br/><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">Dashboard</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> (</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;</span><span class="hl-11">RequireAuth</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">DashboardContent</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;/</span><span class="hl-11">RequireAuth</span><span class="hl-8">&gt;</span><br/><span class="hl-1">  );</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-3">// show/hide based on auth state</span><br/><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">Header</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> (</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;</span><span class="hl-9">nav</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">SignedIn</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-11">LogoutButton</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-11">SignedIn</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">SignedOut</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-11">LoginButton</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-11">SignedOut</span><span class="hl-8">&gt;</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;/</span><span class="hl-9">nav</span><span class="hl-8">&gt;</span><br/><span class="hl-1">  );</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<blockquote>
+<p><strong>Note:</strong> <code>RequireAuth</code>, <code>RequireRole</code>, <code>withAuthenticationRequired</code>, <code>SignedIn</code>, and <code>SignedOut</code>
+are client-only components. The server always renders HTTP 200 for the page — these components
+only control what is shown after hydration. For real server-side protection (blocking the response
+entirely) use <code>requireSession</code> or <code>requireUser</code> in the route loader, or <code>defineRouteAuth</code>
+middleware.</p>
+</blockquote>
+<p><strong>Role-based access</strong> — use <code>defineRouteAuth</code> to enforce a role at the route level.</p>
+<p>Route files export both <code>handle</code> (read client-side by <code>useMatches</code>) and <code>middleware</code>
+(server-only). Import them from separate paths to keep the client bundle free of server code:</p>
+<pre><code class="ts"><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">defineRouteHandle</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">defineRouteAuth</span><span class="hl-1">, </span><span class="hl-5">auth0UserContext</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">// handle comes from the client bundle — safe in browser</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">handle</span><span class="hl-1"> = </span><span class="hl-0">defineRouteHandle</span><span class="hl-1">({ </span><span class="hl-5">role:</span><span class="hl-1"> </span><span class="hl-2">&#39;admin&#39;</span><span class="hl-1"> });</span><br/><br/><span class="hl-3">// middleware comes from /server — stripped from the client bundle by React Router</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">middleware</span><span class="hl-1"> = </span><span class="hl-0">defineRouteAuth</span><span class="hl-1">({ </span><span class="hl-5">role:</span><span class="hl-1"> </span><span class="hl-2">&#39;admin&#39;</span><span class="hl-1"> }).</span><span class="hl-5">middleware</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = ({ </span><span class="hl-5">context</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">user</span><span class="hl-1"> = </span><span class="hl-5">context</span><span class="hl-1">.</span><span class="hl-0">get</span><span class="hl-1">(</span><span class="hl-5">auth0UserContext</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> { </span><span class="hl-5">user</span><span class="hl-1"> };</span><br/><span class="hl-1">};</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Both <code>auth0SessionContext</code> and <code>auth0UserContext</code> follow the same pattern — call
+<code>context.get(key)</code>, not <code>key.get(context)</code>:</p>
+<pre><code class="ts"><span class="hl-4">import</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-5">auth0SessionContext</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-5">auth0UserContext</span><br/><span class="hl-1">} </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = ({ </span><span class="hl-5">context</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">session</span><span class="hl-1"> = </span><span class="hl-5">context</span><span class="hl-1">.</span><span class="hl-0">get</span><span class="hl-1">(</span><span class="hl-5">auth0SessionContext</span><span class="hl-1">); </span><span class="hl-3">// Auth0Session | null</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">user</span><span class="hl-1">    = </span><span class="hl-5">context</span><span class="hl-1">.</span><span class="hl-0">get</span><span class="hl-1">(</span><span class="hl-5">auth0UserContext</span><span class="hl-1">);    </span><span class="hl-3">// Auth0User | null</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> { </span><span class="hl-5">user</span><span class="hl-1"> };</span><br/><span class="hl-1">};</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Requests without the required role receive a <code>403</code>. Roles are read from the
+<code>https://auth0.com/claims/roles</code> claim by default; pass <code>rolesClaim</code> to override.</p>
+<h2 id="calling-apis-with-access-tokens" class="tsd-anchor-link">Calling APIs with access tokens<a href="#calling-apis-with-access-tokens" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Use <code>getAccessToken</code> in a loader or action to retrieve a valid access token for the current user.
+If the token is expired it is silently refreshed using the refresh token before being returned.</p>
+<pre><code class="ts"><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">getAccessToken</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">deleteSession</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">TokenError</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/errors&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">redirect</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;react-router&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = </span><span class="hl-6">async</span><span class="hl-1"> ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">let</span><span class="hl-1"> </span><span class="hl-5">token</span><span class="hl-1">: </span><span class="hl-11">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-4">try</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-5">token</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getAccessToken</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-1">  } </span><span class="hl-4">catch</span><span class="hl-1"> (</span><span class="hl-5">err</span><span class="hl-1">) {</span><br/><span class="hl-1">    </span><span class="hl-4">if</span><span class="hl-1"> (</span><span class="hl-5">err</span><span class="hl-1"> </span><span class="hl-6">instanceof</span><span class="hl-1"> </span><span class="hl-11">TokenError</span><span class="hl-1">) {</span><br/><span class="hl-1">      </span><span class="hl-3">// Refresh token missing or expired — clear the stale session and re-authenticate</span><br/><span class="hl-1">      </span><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-0">deleteSession</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">, { </span><span class="hl-5">redirectTo:</span><span class="hl-1"> </span><span class="hl-2">&#39;/auth/login&#39;</span><span class="hl-1"> });</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">    </span><span class="hl-4">throw</span><span class="hl-1"> </span><span class="hl-5">err</span><span class="hl-1">;</span><br/><span class="hl-1">  }</span><br/><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">data</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">fetch</span><span class="hl-1">(</span><span class="hl-2">&#39;https://api.example.com/items&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">    </span><span class="hl-5">headers:</span><span class="hl-1"> { </span><span class="hl-5">Authorization:</span><span class="hl-1"> </span><span class="hl-2">`Bearer </span><span class="hl-6">${</span><span class="hl-5">token</span><span class="hl-6">}</span><span class="hl-2">`</span><span class="hl-1"> },</span><br/><span class="hl-1">  }).</span><span class="hl-0">then</span><span class="hl-1">(</span><span class="hl-5">r</span><span class="hl-1"> </span><span class="hl-6">=&gt;</span><span class="hl-1"> </span><span class="hl-5">r</span><span class="hl-1">.</span><span class="hl-0">json</span><span class="hl-1">());</span><br/><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> { </span><span class="hl-5">data</span><span class="hl-1"> };</span><br/><span class="hl-1">};</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="token-refresh-prerequisites" class="tsd-anchor-link">Token refresh prerequisites<a href="#token-refresh-prerequisites" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Silent refresh only works when <strong>all three</strong> of the following are configured. If any are missing,
+<code>getAccessToken</code> throws a <code>TokenError</code> with the message
+<code>&quot;The access token has expired and a refresh token was not provided&quot;</code>.</p>
+<ol>
+<li><strong><code>AUTH0_SCOPE</code> includes <code>offline_access</code></strong> — add it to your <code>.env</code>:<pre><code><span class="hl-7">AUTH0_SCOPE</span><span class="hl-1">=</span><span class="hl-5">openid</span><span class="hl-1"> </span><span class="hl-5">profile</span><span class="hl-1"> </span><span class="hl-5">email</span><span class="hl-1"> </span><span class="hl-5">offline_access</span>
+</code><button>Copy</button></pre>
+
+</li>
+<li><strong>Allow Offline Access is enabled on the API</strong> — Auth0 Dashboard → Applications → APIs →
+select your API → Settings → enable <strong>Allow Offline Access</strong>.</li>
+<li><strong>Refresh Token grant is enabled on the application</strong> — Auth0 Dashboard → Applications →
+select your app → Settings → Advanced Settings → Grant Types → check <strong>Refresh Token</strong>.</li>
+</ol>
+<h2 id="api-resource-server" class="tsd-anchor-link">API resource server<a href="#api-resource-server" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>React Router loaders and actions can also serve as API endpoints called by mobile apps, SPAs, or
+other services using a Bearer JWT token. <code>requireClaims</code> verifies the token and returns the claims
+— no session cookie or <code>Auth0Server</code> instance required.</p>
+<pre><code class="ts"><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">requireClaims</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">async</span><span class="hl-1"> </span><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1">({ </span><span class="hl-5">request</span><span class="hl-1"> }) {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">claims</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">requireClaims</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">, { </span><span class="hl-5">scope:</span><span class="hl-1"> </span><span class="hl-2">&#39;read:orders&#39;</span><span class="hl-1"> });</span><br/><span class="hl-1">  </span><span class="hl-3">// React Router forwards the thrown Response automatically:</span><br/><span class="hl-1">  </span><span class="hl-3">//   no token      → 401 { &quot;error&quot;: &quot;bearer_token_error&quot;, ... }</span><br/><span class="hl-1">  </span><span class="hl-3">//   missing scope → 403 { &quot;error&quot;: &quot;insufficient_scope&quot;, ... }</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-5">Response</span><span class="hl-1">.</span><span class="hl-0">json</span><span class="hl-1">(</span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getOrders</span><span class="hl-1">(</span><span class="hl-5">claims</span><span class="hl-1">.</span><span class="hl-5">sub</span><span class="hl-1">));</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Use <code>getClaims</code> instead if you want to handle the unauthenticated case yourself rather than
+throwing:</p>
+<pre><code class="ts"><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">claims</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getClaims</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-4">if</span><span class="hl-1"> (!</span><span class="hl-5">claims</span><span class="hl-1">) </span><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-5">Response</span><span class="hl-1">.</span><span class="hl-0">json</span><span class="hl-1">({ </span><span class="hl-5">public:</span><span class="hl-1"> </span><span class="hl-6">true</span><span class="hl-1"> });</span><br/><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-5">Response</span><span class="hl-1">.</span><span class="hl-0">json</span><span class="hl-1">({ </span><span class="hl-5">user:</span><span class="hl-1"> </span><span class="hl-5">claims</span><span class="hl-1">.</span><span class="hl-5">sub</span><span class="hl-1"> });</span>
+</code><button type="button">Copy</button></pre>
+
+<p>For routes that share a parent, use <code>bearerTokenMiddleware</code> to verify the token once and read it
+from context in each loader — avoids repeated JWKS calls:</p>
+<pre><code class="ts"><span class="hl-3">// app/routes.ts</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">route</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@react-router/dev/routes&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-4">default</span><span class="hl-1"> [</span><br/><span class="hl-1">  </span><span class="hl-0">route</span><span class="hl-1">(</span><span class="hl-2">&#39;api/*&#39;</span><span class="hl-1">, </span><span class="hl-2">&#39;routes/api.$.tsx&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">    </span><span class="hl-5">middleware:</span><span class="hl-1"> [</span><span class="hl-5">bearerTokenMiddleware</span><span class="hl-1">],</span><br/><span class="hl-1">  }),</span><br/><span class="hl-1">];</span><br/><br/><span class="hl-3">// app/routes/api.users.ts</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">requireClaimsFromContext</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">async</span><span class="hl-1"> </span><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1">({ </span><span class="hl-5">context</span><span class="hl-1"> }) {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">claims</span><span class="hl-1"> = </span><span class="hl-0">requireClaimsFromContext</span><span class="hl-1">(</span><span class="hl-5">context</span><span class="hl-1">, { </span><span class="hl-5">scope:</span><span class="hl-1"> </span><span class="hl-2">&#39;read:users&#39;</span><span class="hl-1"> });</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-5">Response</span><span class="hl-1">.</span><span class="hl-0">json</span><span class="hl-1">(</span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getUsers</span><span class="hl-1">());</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="auth0-dashboard-setup" class="tsd-anchor-link">Auth0 Dashboard setup<a href="#auth0-dashboard-setup" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Two environment variables are required — no <code>AUTH0_CLIENT_SECRET</code> or session config needed:</p>
+<pre><code><span class="hl-7">AUTH0_DOMAIN</span><span class="hl-1">=</span><span class="hl-5">your</span><span class="hl-1">-</span><span class="hl-5">tenant</span><span class="hl-1">.</span><span class="hl-5">auth0</span><span class="hl-1">.</span><span class="hl-5">com</span><br/><span class="hl-7">AUTH0_AUDIENCE</span><span class="hl-1">=</span><span class="hl-12">https</span><span class="hl-1">:</span><span class="hl-3">//your-api-identifier</span>
+</code><button>Copy</button></pre>
+
+<p><strong>Registering the API</strong> — create an API in the Auth0 Dashboard (Applications → APIs → Create API)
+and use its identifier as <code>AUTH0_AUDIENCE</code>. The identifier cannot use an <code>.auth0.com</code> domain.</p>
+<p><strong>Authorizing user flows (SPA / RWA PKCE)</strong> — when users log in via a browser PKCE flow and your
+app requests an access token with an audience, Auth0 checks a policy on the API. The default policy
+(<code>require_client_grant</code>) blocks user flows, returning <code>&quot;Client is not authorized to access resource server&quot;</code>. Fix it via the Management API:</p>
+<pre><code class="bash"><span class="hl-0">PATCH</span><span class="hl-1"> </span><span class="hl-2">/api/v2/resource-servers/{id}</span><br/><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-0">&quot;subject_type_authorization&quot;</span><span class="hl-0">:</span><span class="hl-1"> </span><span class="hl-2">{</span><br/><span class="hl-1">    </span><span class="hl-0">&quot;user&quot;</span><span class="hl-0">:</span><span class="hl-1"> </span><span class="hl-2">{</span><span class="hl-1"> </span><span class="hl-2">&quot;policy&quot;:</span><span class="hl-1"> </span><span class="hl-2">&quot;allow_all&quot;</span><span class="hl-1"> </span><span class="hl-2">}</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p><strong>Authorizing M2M flows (client credentials)</strong> — if a backend service calls your API using
+client credentials (no user), authorize the application on the API's <strong>Machine to Machine
+Applications</strong> tab in the Dashboard instead.</p>
+<blockquote>
+<p>The two fixes are independent — M2M tab authorization does not fix user PKCE flows, and
+<code>user.policy: allow_all</code> does not affect M2M flows.</p>
+</blockquote>
+<h3 id="working-with" class="tsd-anchor-link">Working with <code>claims.aud</code><a href="#working-with" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The <code>aud</code> claim can be a <code>string</code> or a <code>string[]</code> depending on how many audiences are in the
+token. Strict equality checks silently fail when it is an array:</p>
+<pre><code class="ts"><span class="hl-3">// ❌ false when aud is [&quot;https://api.example.com&quot;]</span><br/><span class="hl-5">claims</span><span class="hl-1">.</span><span class="hl-5">aud</span><span class="hl-1"> === </span><span class="hl-2">&#39;https://api.example.com&#39;</span><br/><br/><span class="hl-3">// ✅ works for both string and array</span><br/><span class="hl-1">[].</span><span class="hl-0">concat</span><span class="hl-1">(</span><span class="hl-5">claims</span><span class="hl-1">.</span><span class="hl-5">aud</span><span class="hl-1">).</span><span class="hl-0">includes</span><span class="hl-1">(</span><span class="hl-2">&#39;https://api.example.com&#39;</span><span class="hl-1">)</span>
+</code><button type="button">Copy</button></pre>
+
+<h2 id="spa-mode" class="tsd-anchor-link">SPA mode<a href="#spa-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>SPA mode is activated automatically when <code>VITE_AUTH0_DOMAIN</code> and <code>VITE_AUTH0_CLIENT_ID</code> are both
+set in your Vite environment. No <code>Auth0Server</code>, no loaders, no server session — the full OIDC flow
+runs in the browser via <code>@auth0/auth0-spa-js</code>.</p>
+<p>The same <code>Auth0Provider</code>, hooks, and components work in both modes. The provider detects the
+<code>VITE_*</code> variables at render time and switches to the SPA-backed implementation internally.</p>
+<p><strong>Environment variables:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VITE_AUTH0_DOMAIN</code></td>
+<td>Your Auth0 tenant domain — activates SPA mode when set alongside client ID</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_CLIENT_ID</code></td>
+<td>Application client ID</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_REDIRECT_URI</code></td>
+<td>Callback URL (optional — defaults to <code>window.location.origin</code>)</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_AUDIENCE</code></td>
+<td>API audience for RS256 access tokens (optional — see note below)</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_SCOPE</code></td>
+<td>OAuth scopes (optional — defaults to <code>openid profile email</code>)</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_CACHE_LOCATION</code></td>
+<td>Token cache: <code>memory</code> (default) or <code>localstorage</code></td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_USE_REFRESH_TOKENS</code></td>
+<td>Enable refresh tokens (optional — defaults to <code>true</code>)</td>
+</tr>
+<tr>
+<td><code>VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK</code></td>
+<td>Fall back to silent iframe SSO if refresh token is absent (optional)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>API tokens</strong> — without <code>VITE_AUTH0_AUDIENCE</code>, <code>getAccessToken()</code> returns an opaque token that
+cannot be validated by an API server. Set <code>VITE_AUTH0_AUDIENCE</code> to the identifier of your
+registered API and it returns a signed RS256 JWT instead.</p>
+</blockquote>
+<h3 id="handling-the-loading-state" class="tsd-anchor-link">Handling the loading state<a href="#handling-the-loading-state" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>In SPA mode the SDK initialises asynchronously — <code>isLoading</code> is <code>true</code> until <code>auth0-spa-js</code>
+finishes restoring the session. During this window <code>SignedIn</code>, <code>SignedOut</code>, and <code>RequireRole</code> all
+render nothing to avoid a flash of incorrect UI.</p>
+<p>Use <code>AuthLoading</code> to show a spinner or placeholder while auth state is being resolved:</p>
+<pre><code class="tsx"><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">AuthLoading</span><span class="hl-1">, </span><span class="hl-5">SignedIn</span><span class="hl-1">, </span><span class="hl-5">SignedOut</span><span class="hl-1">, </span><span class="hl-5">LoginButton</span><span class="hl-1">, </span><span class="hl-5">LogoutButton</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@auth0/auth0-react-router&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-6">function</span><span class="hl-1"> </span><span class="hl-0">Header</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> (</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;</span><span class="hl-9">nav</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">AuthLoading</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-9">span</span><span class="hl-8">&gt;</span><span class="hl-1">Loading...</span><span class="hl-8">&lt;/</span><span class="hl-9">span</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-11">AuthLoading</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">SignedIn</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-11">LogoutButton</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-11">SignedIn</span><span class="hl-8">&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;</span><span class="hl-11">SignedOut</span><span class="hl-8">&gt;</span><br/><span class="hl-1">        </span><span class="hl-8">&lt;</span><span class="hl-11">LoginButton</span><span class="hl-1"> </span><span class="hl-8">/&gt;</span><br/><span class="hl-1">      </span><span class="hl-8">&lt;/</span><span class="hl-11">SignedOut</span><span class="hl-8">&gt;</span><br/><span class="hl-1">    </span><span class="hl-8">&lt;/</span><span class="hl-9">nav</span><span class="hl-8">&gt;</span><br/><span class="hl-1">  );</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Without <code>AuthLoading</code>, the nav will be empty during init and then snap to the correct state once
+loading completes. On fast connections the gap is imperceptible; on slow connections or cold loads
+it is visible.</p>
+<h3 id="persistent-sessions" class="tsd-anchor-link">Persistent sessions<a href="#persistent-sessions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>By default tokens are stored in <strong>memory</strong> and lost on page refresh — the user has to log in again.
+This is the secure default: in-memory tokens are not accessible to XSS attacks.</p>
+<p>To persist sessions across page refreshes, three steps are required:</p>
+<p><strong>1. Enable Offline Access on your Auth0 API</strong></p>
+<p>Auth0 Dashboard → Applications → APIs → [your API] → Settings → <strong>Allow Offline Access</strong> → ON</p>
+<p><strong>2. Enable the Refresh Token grant on your application</strong></p>
+<p>Auth0 Dashboard → Applications → [your app] → Settings → Advanced Settings → Grant Types →
+<strong>Refresh Token</strong> → checked</p>
+<p><strong>3. Set these variables in your <code>.env</code></strong></p>
+<pre><code class="sh"><span class="hl-5">VITE_AUTH0_CACHE_LOCATION</span><span class="hl-1">=</span><span class="hl-2">localstorage</span><br/><span class="hl-5">VITE_AUTH0_SCOPE</span><span class="hl-1">=</span><span class="hl-2">openid</span><span class="hl-1"> </span><span class="hl-0">profile</span><span class="hl-1"> </span><span class="hl-2">email</span><span class="hl-1"> </span><span class="hl-2">offline_access</span>
+</code><button type="button">Copy</button></pre>
+
+<p>With this in place, <code>auth0-spa-js</code> stores the refresh token in <code>localStorage</code> and silently
+exchanges it for a new access token on every page load — no login prompt needed.</p>
+<blockquote>
+<p><strong>Security note:</strong> <code>localstorage</code> tokens are readable by any JavaScript on the page. Only use
+this if your application has strong XSS mitigations in place. When in doubt, keep the default
+<code>memory</code> cache and accept that sessions do not survive a hard refresh.</p>
+</blockquote>
+<h3 id="returns-profile-fields-only-in-spa-mode" class="tsd-anchor-link"><code>useUser()</code> returns profile fields only in SPA mode<a href="#returns-profile-fields-only-in-spa-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>useUser()</code> works in both modes but the shape of the user object differs because the two providers
+populate it from different sources.</p>
+<p>In <strong>RWA mode</strong> the user comes from the server-side session, which stores the full decoded ID token.
+In <strong>SPA mode</strong> it comes from <code>auth0-spa-js</code>'s <code>getUser()</code>, which returns UserInfo profile claims
+only and strips JWT metadata automatically.</p>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>RWA</th>
+<th>SPA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sub</code>, <code>email</code>, <code>name</code>, <code>picture</code></td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Custom claims (e.g. roles)</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>iss</code>, <code>aud</code>, <code>iat</code>, <code>exp</code>, <code>sid</code></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<p>If your code reads JWT metadata claims directly from <code>useUser()</code>, those fields will be <code>undefined</code>
+in SPA mode. Use <code>useAuth0().getIdTokenClaims()</code> if you need the full ID token payload.</p>
+<h3 id="server-helpers-are-not-available-in-spa-mode" class="tsd-anchor-link">Server helpers are not available in SPA mode<a href="#server-helpers-are-not-available-in-spa-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>getSession</code>, <code>requireSession</code>, <code>getUser</code>, <code>requireUser</code>, and <code>getAccessToken</code> are server-side
+utilities that read the encrypted JWE session cookie. In a pure SPA there is no session cookie —
+those helpers will always return <code>null</code> or redirect to login. Use the client-side hooks instead:</p>
+<table>
+<thead>
+<tr>
+<th>Instead of (server)</th>
+<th>Use (client)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getSession(request)</code></td>
+<td><code>useSession()</code></td>
+</tr>
+<tr>
+<td><code>getUser(request)</code></td>
+<td><code>useUser()</code></td>
+</tr>
+<tr>
+<td><code>getAccessToken(request)</code></td>
+<td><code>useAuth0().getAccessToken()</code></td>
+</tr>
+<tr>
+<td><code>requireSession(request)</code></td>
+<td><code>RequireAuth</code> component</td>
+</tr>
+</tbody>
+</table>
+<h3 id="auth0-dashboard-configuration-notes" class="tsd-anchor-link">Auth0 Dashboard configuration notes<a href="#auth0-dashboard-configuration-notes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><strong>Logout <code>returnTo</code></strong> — the URL passed to <code>logout({ returnTo: '...' })</code> must be registered in the
+Auth0 Dashboard under Applications → [your app] → Settings → <strong>Allowed Logout URLs</strong>. Auth0
+validates the URL before redirecting — an unregistered URL results in an error page after logout.</p>
+<p><strong>Sign-up screen</strong> — passing <code>screen_hint: &quot;signup&quot;</code> to <code>loginWithRedirect</code> shows the sign-up
+form instead of the login form, but requires two things:</p>
+<ol>
+<li>Your tenant must use <strong>New Universal Login</strong> (Auth0 Dashboard → Branding → Universal Login).</li>
+<li>Sign-ups must be enabled on the application (Auth0 Dashboard → Applications → [your app] →
+Settings → scroll to &quot;Application Login URI&quot; section).</li>
+</ol>
+<h2 id="known-limitations" class="tsd-anchor-link">Known limitations<a href="#known-limitations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><strong>React Router middleware</strong> — <code>auth0Middleware</code>, <code>bearerTokenMiddleware</code>, and <code>defineRouteAuth</code>
+require React Router ≥ 7.9.0, which introduced the middleware API. On earlier 7.x releases use
+the per-loader helpers (<code>getSession</code>, <code>requireSession</code>, etc.) instead.</li>
+<li><strong>DPoP</strong> (sender-constrained tokens) is not supported. It is planned once the underlying
+<code>@auth0/auth0-server-js</code> foundation gains native support.</li>
+<li><strong><code>AUTH0_AUDIENCE</code> restrictions</strong> — the audience value cannot use an <code>.auth0.com</code> domain; Auth0
+reserves those. Use the identifier of an API you have registered in your tenant
+(Dashboard → Applications → APIs → Create API). After creating the API, also authorize your
+application on the API's <strong>Machine to Machine Applications</strong> tab, otherwise login fails with
+&quot;Client is not authorized to access resource server&quot;.</li>
+<li><strong>Hybrid mode (both <code>AUTH0_*</code> and <code>VITE_*</code> set) is not supported</strong> — when both sets of
+environment variables are present, <code>Auth0Provider</code> activates SPA mode but the server-side JWE
+session cookie is also present. SPA logout clears the in-browser token cache but does not clear
+the cookie, so routes guarded by <code>requireSession</code> continue to serve content after logout. Run the
+app in one mode only: set either <code>AUTH0_*</code> (SSR) or <code>VITE_*</code> (SPA) variables, not both.</li>
+</ul>
+<h2 id="security-considerations" class="tsd-anchor-link">Security considerations<a href="#security-considerations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="do-not-log-session-data" class="tsd-anchor-link">Do not log session data<a href="#do-not-log-session-data" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The SDK never writes PII or token values to any log output. Be careful not to introduce
+logging in your own loaders or actions:</p>
+<pre><code class="ts"><span class="hl-3">// ❌ avoid</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = </span><span class="hl-6">async</span><span class="hl-1"> ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">session</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getSession</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-5">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-5">session</span><span class="hl-1">.</span><span class="hl-5">user</span><span class="hl-1">.</span><span class="hl-5">email</span><span class="hl-1">, </span><span class="hl-5">session</span><span class="hl-1">.</span><span class="hl-5">tokenSets</span><span class="hl-1">); </span><span class="hl-3">// logs PII and credentials</span><br/><span class="hl-1">};</span><br/><br/><span class="hl-3">// ✅ safe</span><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-0">loader</span><span class="hl-1"> = </span><span class="hl-6">async</span><span class="hl-1"> ({ </span><span class="hl-5">request</span><span class="hl-1"> }) </span><span class="hl-6">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">session</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getSession</span><span class="hl-1">(</span><span class="hl-5">request</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> { </span><span class="hl-5">user:</span><span class="hl-1"> </span><span class="hl-5">session</span><span class="hl-1">.</span><span class="hl-5">user</span><span class="hl-1"> };</span><br/><span class="hl-1">};</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>AUTH0_CLIENT_SECRET</code> and <code>AUTH0_SESSION_SECRET</code> should never appear in logs. Treat
+them like passwords — load them from environment variables and keep them out of any
+debug or error output.</p>
+<h2 id="feedback" class="tsd-anchor-link">Feedback<a href="#feedback" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="contributing" class="tsd-anchor-link">Contributing<a href="#contributing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>We appreciate feedback and contribution to this repo! Before you get started, please read the following:</p>
+<ul>
+<li><a href="https://github.com/auth0/open-source-template/blob/master/GENERAL-CONTRIBUTING.md">Auth0's general contribution guidelines</a></li>
+<li><a href="https://github.com/auth0/open-source-template/blob/master/CODE-OF-CONDUCT.md">Auth0's code of conduct guidelines</a></li>
+<li><a href="media/CONTRIBUTING.md">This repo's contribution guide</a></li>
+</ul>
+<h3 id="raise-an-issue" class="tsd-anchor-link">Raise an issue<a href="#raise-an-issue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>To provide feedback or report a bug, please <a href="https://github.com/auth0/auth0-react-router/issues">raise an issue on our issue tracker</a>.</p>
+<h2 id="vulnerability-reporting" class="tsd-anchor-link">Vulnerability Reporting<a href="#vulnerability-reporting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Please do not report security vulnerabilities on the public GitHub issue tracker. The <a href="https://auth0.com/responsible-disclosure-policy">Responsible Disclosure Program</a> details the procedure for disclosing security issues.</p>
+<h2 id="what-is-auth0" class="tsd-anchor-link">What is Auth0?<a href="#what-is-auth0" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://cdn.auth0.com/website/sdks/logos/auth0_dark_mode.png" width="150">
+    <source media="(prefers-color-scheme: light)" srcset="https://cdn.auth0.com/website/sdks/logos/auth0_light_mode.png" width="150">
+    <img alt="Auth0 Logo" src="https://cdn.auth0.com/website/sdks/logos/auth0_light_mode.png" width="150">
+  </picture>
+</p>
+<p align="center">
+  Auth0 is an easy to implement, adaptable authentication and authorization platform. To learn more checkout <a href="https://auth0.com/why-auth0">Why Auth0?</a>
+</p>
+<h2 id="license" class="tsd-anchor-link">License<a href="#license" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>This project is licensed under the Apache License 2.0. See the <a href="media/LICENSE">LICENSE</a> file for more info.</p>
+</div></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details"><a href="#auth0auth0-react-router"><span>@auth0/auth0-<wbr/>react-<wbr/>router</span></a>
+<ul>
+<li><a href="#table-of-contents"><span>Table of contents</span></a></li>
+<li><a href="#installation"><span>Installation</span></a></li>
+<li><a href="#package-structure"><span>Package structure</span></a></li>
+<li>
+<ul>
+<li><a href="#api-style-free-functions-not-instance-methods"><span>API style: free functions, not instance methods</span></a></li></ul></li>
+<li><a href="#features"><span>Features</span></a></li>
+<li><a href="#quick-start"><span>Quick start</span></a></li>
+<li><a href="#protecting-routes"><span>Protecting routes</span></a></li>
+<li><a href="#calling-apis-with-access-tokens"><span>Calling <wbr/>AP<wbr/>Is with access tokens</span></a></li>
+<li>
+<ul>
+<li><a href="#token-refresh-prerequisites"><span>Token refresh prerequisites</span></a></li></ul></li>
+<li><a href="#api-resource-server"><span>API resource server</span></a></li>
+<li>
+<ul>
+<li><a href="#auth0-dashboard-setup"><span>Auth0 <wbr/>Dashboard setup</span></a></li>
+<li><a href="#working-with"><span>Working with </span></a></li></ul></li>
+<li><a href="#spa-mode"><span>SPA mode</span></a></li>
+<li>
+<ul>
+<li><a href="#handling-the-loading-state"><span>Handling the loading state</span></a></li>
+<li><a href="#persistent-sessions"><span>Persistent sessions</span></a></li>
+<li><a href="#returns-profile-fields-only-in-spa-mode"><span> returns profile fields only in <wbr/>SPA mode</span></a></li>
+<li><a href="#server-helpers-are-not-available-in-spa-mode"><span>Server helpers are not available in <wbr/>SPA mode</span></a></li>
+<li><a href="#auth0-dashboard-configuration-notes"><span>Auth0 <wbr/>Dashboard configuration notes</span></a></li></ul></li>
+<li><a href="#known-limitations"><span>Known limitations</span></a></li>
+<li><a href="#security-considerations"><span>Security considerations</span></a></li>
+<li>
+<ul>
+<li><a href="#do-not-log-session-data"><span>Do not log session data</span></a></li></ul></li>
+<li><a href="#feedback"><span>Feedback</span></a></li>
+<li>
+<ul>
+<li><a href="#contributing"><span>Contributing</span></a></li>
+<li><a href="#raise-an-issue"><span>Raise an issue</span></a></li></ul></li>
+<li><a href="#vulnerability-reporting"><span>Vulnerability <wbr/>Reporting</span></a></li>
+<li><a href="#what-is-auth0"><span>What is <wbr/>Auth0?</span></a></li>
+<li><a href="#license"><span>License</span></a></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="modules.html">@auth0/auth0-react-router</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer></footer>
+<div class="overlay"></div></body></html>
