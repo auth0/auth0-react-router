@@ -149,10 +149,22 @@ export async function handleCallback(
 
   let appState: { returnTo?: string } | undefined;
 
+  // When the app sits behind a TLS-terminating proxy (e.g. Nginx, Caddy, AWS ALB)
+  // the inbound request arrives over plain HTTP, so request.url carries an http://
+  // scheme even though AUTH0_APP_BASE_URL is https://. handleLogin built the
+  // redirect_uri from appBaseUrl (https://), so completeInteractiveLogin must
+  // receive the same scheme — otherwise Auth0 rejects the token exchange with a
+  // redirect_uri mismatch. We correct only the protocol; the path and query string
+  // (code, state) come from the live request and are intentionally preserved.
+  const callbackUrl = new URL(request.url);
+  if (auth0.config.appBaseUrl) {
+    callbackUrl.protocol = new URL(auth0.config.appBaseUrl).protocol;
+  }
+
   try {
     const result = await auth0.serverClient.completeInteractiveLogin<{
       returnTo?: string;
-    }>(new URL(request.url), storeOptions);
+    }>(callbackUrl, storeOptions);
     appState = result.appState;
   } catch (err) {
     if (err instanceof MissingTransactionError) {

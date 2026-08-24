@@ -429,6 +429,48 @@ describe('handleCallback', () => {
       )
     ).rejects.toThrow(CallbackError);
   });
+
+  it('upgrades http to https when appBaseUrl is https and request arrives over http (TLS-terminating proxy)', async () => {
+    const completeInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue({ appState: { returnTo: '/' } });
+    const auth0 = makeAuth0({
+      completeInteractiveLogin,
+      appBaseUrl: 'https://myapp.com'
+    });
+
+    await handleCallback(
+      auth0,
+      makeRequest('http://myapp.com/auth/callback?code=abc&state=xyz')
+    );
+
+    const receivedUrl: URL = completeInteractiveLogin.mock.calls[0][0];
+    expect(receivedUrl.protocol).toBe('https:');
+    expect(receivedUrl.pathname).toBe('/auth/callback');
+    expect(receivedUrl.searchParams.get('code')).toBe('abc');
+    expect(receivedUrl.searchParams.get('state')).toBe('xyz');
+  });
+
+  it('does not alter the callback URL when appBaseUrl is not configured', async () => {
+    const completeInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue({ appState: { returnTo: '/' } });
+    const auth0 = makeAuth0({
+      completeInteractiveLogin,
+      appBaseUrl: undefined
+    });
+
+    await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    const receivedUrl: URL = completeInteractiveLogin.mock.calls[0][0];
+    expect(receivedUrl.protocol).toBe('http:');
+    expect(receivedUrl.href).toBe(
+      'http://localhost:3000/auth/callback?code=abc&state=xyz'
+    );
+  });
 });
 
 // ─── handleLogout ─────────────────────────────────────────────────────────────
