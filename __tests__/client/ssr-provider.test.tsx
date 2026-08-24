@@ -48,7 +48,10 @@ function renderSsrProvider(
 }
 
 beforeEach(() => vi.clearAllMocks());
-afterEach(cleanup);
+afterEach(() => {
+  vi.unstubAllEnvs();
+  cleanup();
+});
 
 // ─── loginWithRedirect ────────────────────────────────────────────────────────
 
@@ -100,5 +103,22 @@ describe('SSR Auth0Provider — logout', () => {
     expect(form.method).toBe('post');
     expect(form.action).toContain('/auth/logout?returnTo=');
     expect(submitSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── Externalized CJS / Node.js SSR ──────────────────────────────────────────
+
+describe('Auth0Provider — externalized package crash (import.meta.env undefined)', () => {
+  it('renders SSR mode without throwing when import.meta.env is undefined', () => {
+    // When the package is installed from npm and Vite externalizes it, tsup's
+    // CJS output replaces import.meta with {} so import.meta.env is undefined.
+    // Auth0Provider must not throw — it must fall through to SSR mode.
+    const original = import.meta.env;
+    (import.meta as unknown as Record<string, unknown>).env = undefined;
+    try {
+      expect(() => renderSsrProvider()).not.toThrow();
+    } finally {
+      (import.meta as unknown as Record<string, unknown>).env = original;
+    }
   });
 });
