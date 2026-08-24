@@ -32,7 +32,8 @@ export {
   getAccessToken,
   updateSession,
   deleteSession,
-  createApiClient
+  createApiClient,
+  registerAuth0Instance
 } from './utils.js';
 export type { RequireSessionOptions, CreateApiClientOptions } from './utils.js';
 
@@ -46,7 +47,7 @@ export {
   getClaimsFromContext,
   requireClaimsFromContext
 } from './middleware.js';
-export type { DefineRouteAuthOptions, RouteAuthHandle } from './middleware.js';
+
 
 export { getClaims, requireClaims } from './api.js';
 export type { RequireClaimsOptions } from './api.js';

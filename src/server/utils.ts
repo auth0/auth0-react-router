@@ -60,6 +60,24 @@ export function _setAuth0Instance(instance: Auth0Server | undefined): void {
   _instance = instance;
 }
 
+/**
+ * Registers your Auth0Server instance as the singleton used by standalone
+ * helpers (getSession, requireSession, getAccessToken, updateSession,
+ * deleteSession, etc.).
+ *
+ * Call this once at app startup, after constructing your Auth0Server instance,
+ * so that hooks registered on it (onCallback, beforeSessionSaved) are honoured
+ * during token refresh and session writes triggered by the standalone helpers.
+ *
+ * @example
+ * // auth0.server.ts
+ * export const auth0 = new Auth0Server({ onCallback, beforeSessionSaved });
+ * registerAuth0Instance(auth0);
+ */
+export function registerAuth0Instance(instance: Auth0Server): void {
+  _instance = instance;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -181,11 +199,47 @@ const accessTokenCache = new WeakMap<Request, Promise<string>>();
  * If the token is expired, it is silently refreshed using the refresh token.
  * Parallel calls within the same request share a single refresh operation.
  *
+ * **Token refresh prerequisites** — silent refresh only works when all three of
+ * the following are configured:
+ *
+ * 1. `AUTH0_SCOPE` (or the `scope` constructor option) includes `offline_access`.
+ * 2. The Auth0 application has **Allow Offline Access** enabled
+ *    (Dashboard → Applications → [your app] → Settings → scroll to "Refresh Token").
+ * 3. The **Refresh Token** grant is enabled on the same settings page.
+ *
+ * If a refresh token is absent, `getAccessToken` throws a `TokenError`. The error
+ * message will indicate that no refresh token is available.
+ *
+ * **Handling an expired refresh token** — when the refresh token itself has
+ * expired or been revoked, `getAccessToken` throws a `TokenError`. The session
+ * cookie is still present in the browser but the tokens inside are no longer
+ * usable. Clear the stale session and redirect the user to login:
+ *
+ * @example
+ * import { getAccessToken, deleteSession } from '@auth0/auth0-react-router/server';
+ * import { TokenError } from '@auth0/auth0-react-router/errors';
+ * import { redirect } from 'react-router';
+ *
+ * export const loader = async ({ request }) => {
+ *   let token: string;
+ *   try {
+ *     token = await getAccessToken(request);
+ *   } catch (err) {
+ *     if (err instanceof TokenError) {
+ *       const response = await deleteSession(request);
+ *       throw redirect('/auth/login', { headers: response.headers });
+ *     }
+ *     throw err;
+ *   }
+ *   // use token to call your API...
+ * };
+ *
  * Note: when a refresh occurs, the updated session cookie is written internally
- * but is not automatically propagated to the browser response. Add
- * auth0Middleware (Story 5) to have the refreshed cookie forwarded automatically.
- * Without middleware, the token is still returned correctly but the refresh will
- * repeat on every request until the session is explicitly persisted.
+ * but is not automatically propagated to the browser response. Mount
+ * `auth0Middleware` on the root route to have the refreshed cookie forwarded
+ * automatically. Without middleware, the token is still returned correctly but
+ * the refresh will repeat on every request until the session is explicitly
+ * persisted.
  *
  * @throws {TokenError} When no session exists or the token cannot be retrieved.
  */
@@ -270,15 +324,34 @@ export async function updateSession(
  * Returns a Response whose Set-Cookie headers expire the session cookie.
  * The user's Auth0 SSO session is NOT terminated — use handleLogout for that.
  *
+ * **Important:** always redirect to a public page after calling `deleteSession`.
+ * If you call it from a protected route's action (one guarded by `requireSession`
+ * or `defineRouteAuth`), React Router will re-run the loader after the action
+ * completes. The loader will redirect to `/auth/login?returnTo=/page.data`
+ * because the session is now gone. Pass `redirectTo` to return a 302 directly:
+ *
  * @example
- * return deleteSession(request);
+ * export const action = async ({ request }) => {
+ *   return deleteSession(request, { redirectTo: '/' });
+ * };
  */
-export async function deleteSession(request: Request): Promise<Response> {
+export async function deleteSession(
+  request: Request,
+  options?: { redirectTo?: string }
+): Promise<Response> {
   const auth0 = getInstance();
   const cookieJar = new Response();
   const storeOptions = { request, response: cookieJar };
 
   await auth0.stateStore.delete(auth0.stateIdentifier, storeOptions);
+
+  if (options?.redirectTo) {
+    const headers = new Headers({ Location: options.redirectTo });
+    for (const cookie of cookieJar.headers.getSetCookie()) {
+      headers.append('Set-Cookie', cookie);
+    }
+    return new Response(null, { status: 302, headers });
+  }
 
   return cookieJar;
 }

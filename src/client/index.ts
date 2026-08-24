@@ -1,6 +1,9 @@
 export { Auth0Provider } from './Auth0Provider.js';
 export type { Auth0ProviderProps } from './Auth0Provider.js';
 
+export { defineRouteHandle } from '../server/route-handle.js';
+export type { DefineRouteAuthOptions, RouteAuthHandle } from '../server/route-handle.js';
+
 export { useAuth0 } from './use-auth0.js';
 export { useUser } from './use-user.js';
 export { useSession } from './use-session.js';
