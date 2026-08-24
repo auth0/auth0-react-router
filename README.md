@@ -18,6 +18,7 @@ with the rest of the Auth0 ecosystem.
 - [Protecting routes](#protecting-routes)
 - [Calling APIs with access tokens](#calling-apis-with-access-tokens)
 - [SPA mode](#spa-mode)
+- [API resource server](#api-resource-server)
 - [Known limitations](#known-limitations)
 - [Security considerations](#security-considerations)
 - [Feedback](#feedback)
@@ -325,6 +326,98 @@ Silent refresh only works when **all three** of the following are configured. If
    select your API → Settings → enable **Allow Offline Access**.
 3. **Refresh Token grant is enabled on the application** — Auth0 Dashboard → Applications →
    select your app → Settings → Advanced Settings → Grant Types → check **Refresh Token**.
+## API resource server
+
+React Router loaders and actions can also serve as API endpoints called by mobile apps, SPAs, or
+other services using a Bearer JWT token. `requireClaims` verifies the token and returns the claims
+— no session cookie or `Auth0Server` instance required.
+
+```ts
+import { requireClaims } from '@auth0/auth0-react-router/server';
+
+export async function loader({ request }) {
+  const claims = await requireClaims(request, { scope: 'read:orders' });
+  // React Router forwards the thrown Response automatically:
+  //   no token      → 401 { "error": "bearer_token_error", ... }
+  //   missing scope → 403 { "error": "insufficient_scope", ... }
+  return Response.json(await getOrders(claims.sub));
+}
+```
+
+Use `getClaims` instead if you want to handle the unauthenticated case yourself rather than
+throwing:
+
+```ts
+const claims = await getClaims(request);
+if (!claims) return Response.json({ public: true });
+return Response.json({ user: claims.sub });
+```
+
+For routes that share a parent, use `bearerTokenMiddleware` to verify the token once and read it
+from context in each loader — avoids repeated JWKS calls:
+
+```ts
+// app/routes.ts
+import { route } from '@react-router/dev/routes';
+export default [
+  route('api/*', 'routes/api.$.tsx', {
+    middleware: [bearerTokenMiddleware],
+  }),
+];
+
+// app/routes/api.users.ts
+import { requireClaimsFromContext } from '@auth0/auth0-react-router/server';
+export async function loader({ context }) {
+  const claims = requireClaimsFromContext(context, { scope: 'read:users' });
+  return Response.json(await getUsers());
+}
+```
+
+### Auth0 Dashboard setup
+
+Two environment variables are required — no `AUTH0_CLIENT_SECRET` or session config needed:
+
+```
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_AUDIENCE=https://your-api-identifier
+```
+
+**Registering the API** — create an API in the Auth0 Dashboard (Applications → APIs → Create API)
+and use its identifier as `AUTH0_AUDIENCE`. The identifier cannot use an `.auth0.com` domain.
+
+**Authorizing user flows (SPA / RWA PKCE)** — when users log in via a browser PKCE flow and your
+app requests an access token with an audience, Auth0 checks a policy on the API. The default policy
+(`require_client_grant`) blocks user flows, returning `"Client is not authorized to access resource
+server"`. Fix it via the Management API:
+
+```bash
+PATCH /api/v2/resource-servers/{id}
+{
+  "subject_type_authorization": {
+    "user": { "policy": "allow_all" }
+  }
+}
+```
+
+**Authorizing M2M flows (client credentials)** — if a backend service calls your API using
+client credentials (no user), authorize the application on the API's **Machine to Machine
+Applications** tab in the Dashboard instead.
+
+> The two fixes are independent — M2M tab authorization does not fix user PKCE flows, and
+> `user.policy: allow_all` does not affect M2M flows.
+
+### Working with `claims.aud`
+
+The `aud` claim can be a `string` or a `string[]` depending on how many audiences are in the
+token. Strict equality checks silently fail when it is an array:
+
+```ts
+// ❌ false when aud is ["https://api.example.com"]
+claims.aud === 'https://api.example.com'
+
+// ✅ works for both string and array
+[].concat(claims.aud).includes('https://api.example.com')
+```
 
 ## SPA mode
 
