@@ -1,0 +1,21 @@
+# Changelog
+
+## [1.0.0-beta.0] - 2026-08-24
+
+Initial beta release of `@auth0/auth0-react-router` — an Auth0 authentication SDK for [React Router v7](https://reactrouter.com/) framework mode applications.
+
+> APIs may change before the stable GA release.
+
+### Added
+
+- Server-side authentication with encrypted JWE session cookies (`handleLogin`, `handleCallback`, `handleLogout`, `handleAuth`, `handleBackchannelLogout`)
+- Session and token helpers for loaders and actions: `getSession`, `requireSession`, `getUser`, `requireUser`, `getAccessToken`, `updateSession`, `deleteSession`, `createApiClient`
+- `rootAuthLoader` for exposing the browser-safe session to the client via React Router's root loader
+- Route protection middleware: `auth0Middleware`, `defineRouteAuth` with role-based access control (requires React Router >= 7.9.0)
+- API resource server support: `bearerTokenMiddleware`, `getClaims`, `requireClaims`
+- React hooks and UI components: `useAuth0`, `useUser`, `useSession`, `SignedIn`, `SignedOut`, `AuthLoading`, `Auth0ErrorBoundary`, `RequireAuth`, `RequireRole`, `LoginButton`, `LogoutButton`, `withAuthenticationRequired`
+- `stripIdTokenClaims` utility for removing sensitive claims before forwarding tokens
+- Typed error classes: `Auth0Error`, `AuthenticationError`, `SessionExpiredError`, `MissingSessionError`, `TokenError`, `BearerTokenError`, `CallbackError`, `InsufficientScopeError`, `ConfigurationError`
+- Optional SPA mode backed by `@auth0/auth0-spa-js`
+- Testing utilities: `Auth0ProviderMock`, `WithAuth`, and mock factories (`createMockUser`, `createMockSession`, `createMockTokenSet`, `createMockAuth0Context`, `createMockLoader`, `createMockBearerRequest`)
+- Six tree-shakeable entry points keeping server code out of the client bundle: `/client`, `/server`, `/errors`, `/types`, `/testing`
