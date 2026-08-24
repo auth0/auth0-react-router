@@ -17,6 +17,7 @@ with the rest of the Auth0 ecosystem.
 - [Quick start](#quick-start)
 - [Protecting routes](#protecting-routes)
 - [Calling APIs with access tokens](#calling-apis-with-access-tokens)
+- [SPA mode](#spa-mode)
 - [Known limitations](#known-limitations)
 - [Security considerations](#security-considerations)
 - [Feedback](#feedback)
@@ -124,7 +125,7 @@ the constructor.
 | `AUTH0_CLIENT_SECRET`  | Application client secret                                       |
 | `AUTH0_SESSION_SECRET` | Random string (min 32 chars) used to encrypt the session cookie |
 | `AUTH0_APP_BASE_URL`   | Full URL of your app, e.g. `https://example.com` (optional — inferred from `request.url` at runtime, but should be set explicitly in production when running behind a reverse proxy) |
-| `AUTH0_AUDIENCE`       | API audience, if requesting access tokens for an API (optional) |
+| `AUTH0_AUDIENCE`       | API audience for access tokens (optional). Without this, `getAccessToken` returns an opaque token that API servers cannot validate. Set it to the identifier of your registered API (e.g. `https://api.example.com`) to receive a signed RS256 JWT instead. |
 | `AUTH0_SCOPE`          | OAuth scopes, defaults to `openid profile email` (optional)     |
 
 **2. Register the auth routes:**
@@ -325,6 +326,138 @@ Silent refresh only works when **all three** of the following are configured. If
 3. **Refresh Token grant is enabled on the application** — Auth0 Dashboard → Applications →
    select your app → Settings → Advanced Settings → Grant Types → check **Refresh Token**.
 
+## SPA mode
+
+SPA mode is activated automatically when `VITE_AUTH0_DOMAIN` and `VITE_AUTH0_CLIENT_ID` are both
+set in your Vite environment. No `Auth0Server`, no loaders, no server session — the full OIDC flow
+runs in the browser via `@auth0/auth0-spa-js`.
+
+The same `Auth0Provider`, hooks, and components work in both modes. The provider detects the
+`VITE_*` variables at render time and switches to the SPA-backed implementation internally.
+
+**Environment variables:**
+
+| Variable                                | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `VITE_AUTH0_DOMAIN`                     | Your Auth0 tenant domain — activates SPA mode when set alongside client ID   |
+| `VITE_AUTH0_CLIENT_ID`                  | Application client ID                                                         |
+| `VITE_AUTH0_REDIRECT_URI`               | Callback URL (optional — defaults to `window.location.origin`)               |
+| `VITE_AUTH0_AUDIENCE`                   | API audience for RS256 access tokens (optional — see note below)             |
+| `VITE_AUTH0_SCOPE`                      | OAuth scopes (optional — defaults to `openid profile email`)                 |
+| `VITE_AUTH0_CACHE_LOCATION`             | Token cache: `memory` (default) or `localstorage`                            |
+| `VITE_AUTH0_USE_REFRESH_TOKENS`         | Enable refresh tokens (optional — defaults to `true`)                        |
+| `VITE_AUTH0_USE_REFRESH_TOKENS_FALLBACK`| Fall back to silent iframe SSO if refresh token is absent (optional)         |
+
+> **API tokens** — without `VITE_AUTH0_AUDIENCE`, `getAccessToken()` returns an opaque token that
+> cannot be validated by an API server. Set `VITE_AUTH0_AUDIENCE` to the identifier of your
+> registered API and it returns a signed RS256 JWT instead.
+
+### Handling the loading state
+
+In SPA mode the SDK initialises asynchronously — `isLoading` is `true` until `auth0-spa-js`
+finishes restoring the session. During this window `SignedIn`, `SignedOut`, and `RequireRole` all
+render nothing to avoid a flash of incorrect UI.
+
+Use `AuthLoading` to show a spinner or placeholder while auth state is being resolved:
+
+```tsx
+import { AuthLoading, SignedIn, SignedOut, LoginButton, LogoutButton } from '@auth0/auth0-react-router';
+
+function Header() {
+  return (
+    <nav>
+      <AuthLoading>
+        <span>Loading...</span>
+      </AuthLoading>
+      <SignedIn>
+        <LogoutButton />
+      </SignedIn>
+      <SignedOut>
+        <LoginButton />
+      </SignedOut>
+    </nav>
+  );
+}
+```
+
+Without `AuthLoading`, the nav will be empty during init and then snap to the correct state once
+loading completes. On fast connections the gap is imperceptible; on slow connections or cold loads
+it is visible.
+
+### Persistent sessions
+
+By default tokens are stored in **memory** and lost on page refresh — the user has to log in again.
+This is the secure default: in-memory tokens are not accessible to XSS attacks.
+
+To persist sessions across page refreshes, three steps are required:
+
+**1. Enable Offline Access on your Auth0 API**
+
+Auth0 Dashboard → Applications → APIs → [your API] → Settings → **Allow Offline Access** → ON
+
+**2. Enable the Refresh Token grant on your application**
+
+Auth0 Dashboard → Applications → [your app] → Settings → Advanced Settings → Grant Types →
+**Refresh Token** → checked
+
+**3. Set these variables in your `.env`**
+
+```sh
+VITE_AUTH0_CACHE_LOCATION=localstorage
+VITE_AUTH0_SCOPE=openid profile email offline_access
+```
+
+With this in place, `auth0-spa-js` stores the refresh token in `localStorage` and silently
+exchanges it for a new access token on every page load — no login prompt needed.
+
+> **Security note:** `localstorage` tokens are readable by any JavaScript on the page. Only use
+> this if your application has strong XSS mitigations in place. When in doubt, keep the default
+> `memory` cache and accept that sessions do not survive a hard refresh.
+
+### `useUser()` returns profile fields only in SPA mode
+
+`useUser()` works in both modes but the shape of the user object differs because the two providers
+populate it from different sources.
+
+In **RWA mode** the user comes from the server-side session, which stores the full decoded ID token.
+In **SPA mode** it comes from `auth0-spa-js`'s `getUser()`, which returns UserInfo profile claims
+only and strips JWT metadata automatically.
+
+| Claim | RWA | SPA |
+| ----- | --- | --- |
+| `sub`, `email`, `name`, `picture` | ✅ | ✅ |
+| Custom claims (e.g. roles) | ✅ | ✅ |
+| `iss`, `aud`, `iat`, `exp`, `sid` | ✅ | ❌ |
+
+If your code reads JWT metadata claims directly from `useUser()`, those fields will be `undefined`
+in SPA mode. Use `useAuth0().getIdTokenClaims()` if you need the full ID token payload.
+
+### Server helpers are not available in SPA mode
+
+`getSession`, `requireSession`, `getUser`, `requireUser`, and `getAccessToken` are server-side
+utilities that read the encrypted JWE session cookie. In a pure SPA there is no session cookie —
+those helpers will always return `null` or redirect to login. Use the client-side hooks instead:
+
+| Instead of (server) | Use (client) |
+| ------------------- | ------------ |
+| `getSession(request)` | `useSession()` |
+| `getUser(request)` | `useUser()` |
+| `getAccessToken(request)` | `useAuth0().getAccessToken()` |
+| `requireSession(request)` | `RequireAuth` component |
+
+### Auth0 Dashboard configuration notes
+
+**Logout `returnTo`** — the URL passed to `logout({ returnTo: '...' })` must be registered in the
+Auth0 Dashboard under Applications → [your app] → Settings → **Allowed Logout URLs**. Auth0
+validates the URL before redirecting — an unregistered URL results in an error page after logout.
+
+**Sign-up screen** — passing `screen_hint: "signup"` to `loginWithRedirect` shows the sign-up
+form instead of the login form, but requires two things:
+
+1. Your tenant must use **New Universal Login** (Auth0 Dashboard → Branding → Universal Login).
+2. Sign-ups must be enabled on the application (Auth0 Dashboard → Applications → [your app] →
+   Settings → scroll to "Application Login URI" section).
+
 ## Known limitations
 
 - **React Router middleware** — `auth0Middleware`, `bearerTokenMiddleware`, and `defineRouteAuth`
@@ -337,6 +470,11 @@ Silent refresh only works when **all three** of the following are configured. If
   (Dashboard → Applications → APIs → Create API). After creating the API, also authorize your
   application on the API's **Machine to Machine Applications** tab, otherwise login fails with
   "Client is not authorized to access resource server".
+- **Hybrid mode (both `AUTH0_*` and `VITE_*` set) is not supported** — when both sets of
+  environment variables are present, `Auth0Provider` activates SPA mode but the server-side JWE
+  session cookie is also present. SPA logout clears the in-browser token cache but does not clear
+  the cookie, so routes guarded by `requireSession` continue to serve content after logout. Run the
+  app in one mode only: set either `AUTH0_*` (SSR) or `VITE_*` (SPA) variables, not both.
 
 ## Security considerations
 

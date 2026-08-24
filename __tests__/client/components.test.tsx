@@ -192,6 +192,18 @@ describe('RequireRole', () => {
     );
     expect(screen.getByText('Custom claim')).toBeDefined();
   });
+
+  it('renders nothing while isLoading — does not throw during SPA init', () => {
+    const ctx = createMockAuth0Context({ isLoading: true, isAuthenticated: false, session: null });
+    const { container } = render(
+      <Auth0Context.Provider value={ctx}>
+        <RequireRole role="admin">
+          <span>Admin</span>
+        </RequireRole>
+      </Auth0Context.Provider>
+    );
+    expect(container.firstChild).toBeNull();
+  });
 });
 
 // ─── SignedIn / SignedOut / AuthLoading ───────────────────────────────────────
