@@ -1,8 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  BearerTokenError,
-  InsufficientScopeError
-} from '../../src/errors/index.js';
 import type { JWTClaims } from '../../src/types/index.js';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -142,14 +138,20 @@ describe('requireClaimsFromContext', () => {
     expect(requireClaimsFromContext(context)).toBe(CLAIMS);
   });
 
-  it('throws BearerTokenError when middleware found no valid token (null)', () => {
+  it('throws a 401 Response when middleware found no valid token (null)', () => {
     const context = makeContext(null) as any;
-    expect(() => requireClaimsFromContext(context)).toThrow(BearerTokenError);
+    let err: unknown;
+    try { requireClaimsFromContext(context); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(Response);
+    expect((err as Response).status).toBe(401);
   });
 
-  it('throws BearerTokenError when middleware was not mounted (undefined)', () => {
+  it('throws a 401 Response when middleware was not mounted (undefined)', () => {
     const context = makeContext() as any;
-    expect(() => requireClaimsFromContext(context)).toThrow(BearerTokenError);
+    let err: unknown;
+    try { requireClaimsFromContext(context); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(Response);
+    expect((err as Response).status).toBe(401);
   });
 
   it('passes when token has the required single scope', () => {
@@ -168,30 +170,30 @@ describe('requireClaimsFromContext', () => {
     ).not.toThrow();
   });
 
-  it('throws InsufficientScopeError when token is missing a scope', () => {
+  it('throws a 403 Response when token is missing a scope', () => {
     const context = makeContext(CLAIMS) as any;
-    expect(() =>
-      requireClaimsFromContext(context, {
-        scope: ['read:users', 'delete:posts']
-      })
-    ).toThrow(InsufficientScopeError);
+    let err: unknown;
+    try { requireClaimsFromContext(context, { scope: ['read:users', 'delete:posts'] }); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(Response);
+    expect((err as Response).status).toBe(403);
   });
 
-  it('throws InsufficientScopeError with correct message', () => {
+  it('403 Response carries the missing scope in error_description', async () => {
     const context = makeContext(CLAIMS) as any;
-    expect(() =>
-      requireClaimsFromContext(context, {
-        scope: ['read:users', 'delete:posts']
-      })
-    ).toThrow('Required scope(s): read:users, delete:posts');
+    let err: unknown;
+    try { requireClaimsFromContext(context, { scope: ['read:users', 'delete:posts'] }); } catch (e) { err = e; }
+    const body = await (err as Response).json();
+    expect(body.error).toBe('insufficient_scope');
+    expect(body.error_description).toBe('Required scope(s): read:users, delete:posts');
   });
 
-  it('throws InsufficientScopeError when token has no scope claim', () => {
+  it('throws a 403 Response when token has no scope claim', () => {
     const claimsNoScope: JWTClaims = { ...CLAIMS, scope: undefined };
     const context = makeContext(claimsNoScope) as any;
-    expect(() =>
-      requireClaimsFromContext(context, { scope: 'read:users' })
-    ).toThrow(InsufficientScopeError);
+    let err: unknown;
+    try { requireClaimsFromContext(context, { scope: 'read:users' }); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(Response);
+    expect((err as Response).status).toBe(403);
   });
 
   it('passes when no scope option is provided', () => {

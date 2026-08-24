@@ -5,11 +5,7 @@ import {
   _setVerifyJwt,
   _resetApiClient
 } from '../../src/server/api.js';
-import {
-  BearerTokenError,
-  ConfigurationError,
-  InsufficientScopeError
-} from '../../src/errors/index.js';
+import { ConfigurationError } from '../../src/errors/index.js';
 import { ApiClient } from '@auth0/auth0-api-js';
 import type { JWTClaims } from '../../src/types/index.js';
 
@@ -84,37 +80,33 @@ describe('requireClaims', () => {
     _setVerifyJwt(undefined);
   });
 
-  it('throws BearerTokenError when no Authorization header', async () => {
-    await expect(requireClaims(makeRequest())).rejects.toThrow(
-      BearerTokenError
-    );
-    await expect(requireClaims(makeRequest())).rejects.toThrow(
-      'No Bearer token found in Authorization header'
-    );
+  it('throws a 401 Response when no Authorization header', async () => {
+    const err = await requireClaims(makeRequest()).catch(e => e);
+    expect(err).toBeInstanceOf(Response);
+    expect(err.status).toBe(401);
+    const body = await err.json();
+    expect(body.error).toBe('bearer_token_error');
+    expect(body.error_description).toBe('No Bearer token found in Authorization header');
   });
 
-  it('throws BearerTokenError when Authorization is not Bearer format', async () => {
-    await expect(
-      requireClaims(makeRequest('Basic dXNlcjpwYXNz'))
-    ).rejects.toThrow(BearerTokenError);
+  it('throws a 401 Response when Authorization is not Bearer format', async () => {
+    const err = await requireClaims(makeRequest('Basic dXNlcjpwYXNz')).catch(e => e);
+    expect(err).toBeInstanceOf(Response);
+    expect(err.status).toBe(401);
   });
 
-  it('throws BearerTokenError when token fails verification', async () => {
-    _setVerifyJwt(async () => {
-      throw new Error('jwt expired');
-    });
-    await expect(
-      requireClaims(makeRequest('Bearer bad-token'))
-    ).rejects.toThrow(BearerTokenError);
+  it('throws a 401 Response when token fails verification', async () => {
+    _setVerifyJwt(async () => { throw new Error('jwt expired'); });
+    const err = await requireClaims(makeRequest('Bearer bad-token')).catch(e => e);
+    expect(err).toBeInstanceOf(Response);
+    expect(err.status).toBe(401);
   });
 
-  it('BearerTokenError carries the underlying error message', async () => {
-    _setVerifyJwt(async () => {
-      throw new Error('jwt expired');
-    });
-    await expect(
-      requireClaims(makeRequest('Bearer bad-token'))
-    ).rejects.toThrow('jwt expired');
+  it('401 Response carries the underlying error message in error_description', async () => {
+    _setVerifyJwt(async () => { throw new Error('jwt expired'); });
+    const err = await requireClaims(makeRequest('Bearer bad-token')).catch(e => e);
+    const body = await err.json();
+    expect(body.error_description).toBe('jwt expired');
   });
 
   it('returns claims when token is valid', async () => {
@@ -148,25 +140,25 @@ describe('requireClaims — scope check', () => {
     expect(result).toEqual(CLAIMS);
   });
 
-  it('throws InsufficientScopeError when token is missing one scope', async () => {
-    await expect(
-      requireClaims(makeRequest('Bearer valid-token'), {
-        scope: ['read:users', 'delete:posts']
-      })
-    ).rejects.toThrow(InsufficientScopeError);
-    await expect(
-      requireClaims(makeRequest('Bearer valid-token'), {
-        scope: ['read:users', 'delete:posts']
-      })
-    ).rejects.toThrow('Required scope(s): read:users, delete:posts');
+  it('throws a 403 Response when token is missing a required scope', async () => {
+    const err = await requireClaims(makeRequest('Bearer valid-token'), {
+      scope: ['read:users', 'delete:posts']
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(Response);
+    expect(err.status).toBe(403);
+    const body = await err.json();
+    expect(body.error).toBe('insufficient_scope');
+    expect(body.error_description).toBe('Required scope(s): read:users, delete:posts');
   });
 
-  it('throws InsufficientScopeError when token has no scope claim', async () => {
+  it('throws a 403 Response when token has no scope claim', async () => {
     const claimsNoScope: JWTClaims = { ...CLAIMS, scope: undefined };
     _setVerifyJwt(async () => claimsNoScope);
-    await expect(
-      requireClaims(makeRequest('Bearer valid-token'), { scope: 'read:users' })
-    ).rejects.toThrow(InsufficientScopeError);
+    const err = await requireClaims(makeRequest('Bearer valid-token'), {
+      scope: 'read:users'
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(Response);
+    expect(err.status).toBe(403);
   });
 
   it('passes when no scope option is provided (no scope check)', async () => {

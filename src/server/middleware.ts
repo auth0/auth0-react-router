@@ -6,7 +6,6 @@ import {
   type RouteAuthHandle
 } from './route-handle.js';
 import {
-  BearerTokenError,
   ConfigurationError,
   InsufficientScopeError
 } from '../errors/index.js';
@@ -210,14 +209,18 @@ export function getClaimsFromContext(
 }
 
 /**
- * Returns validated JWT claims from the router context. Throws
- * `BearerTokenError` (401) when no valid token is present, or
- * `InsufficientScopeError` (403) when required scopes are missing.
+ * Returns validated JWT claims from the router context.
+ *
+ * Throws a `Response` (401 or 403 JSON) that React Router forwards directly
+ * to the client — no try/catch needed in the loader.
  *
  * Synchronous — the token was already verified by `bearerTokenMiddleware`,
  * so no JWT re-verification or network call is made.
  *
  * Requires `bearerTokenMiddleware` to be mounted on a parent route.
+ *
+ * @throws {Response} 401 — no valid Bearer token in context
+ * @throws {Response} 403 — token valid but missing required scope
  *
  * @example
  * export async function loader({ context }: LoaderFunctionArgs) {
@@ -232,14 +235,18 @@ export function requireClaimsFromContext(
   assertMiddlewareSupported();
   const claims = context.get(auth0ClaimsContext);
   if (!claims)
-    throw new BearerTokenError('No Bearer token found in Authorization header');
+    throw new Response(
+      JSON.stringify({ error: 'bearer_token_error', error_description: 'No Bearer token found in Authorization header' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
 
   if (opts?.scope) {
     const required = Array.isArray(opts.scope) ? opts.scope : [opts.scope];
     const tokenScopes = claims.scope?.trim().split(/\s+/) ?? [];
     if (!required.every(s => tokenScopes.includes(s))) {
-      throw new InsufficientScopeError(
-        `Required scope(s): ${required.join(', ')}`
+      throw new Response(
+        JSON.stringify({ error: 'insufficient_scope', error_description: `Required scope(s): ${required.join(', ')}` }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
   }
