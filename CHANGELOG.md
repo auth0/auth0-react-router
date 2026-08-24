@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.1] - 2026-08-24
+
+### Fixed
+
+- `Auth0Provider` no longer crashes on first render when the package is installed from npm and Vite externalizes it. The CJS build replaces `import.meta` with `{}`, making `import.meta.env` undefined — optional chaining (`import.meta.env?.`) prevents the `TypeError`.
+
 ## [1.0.0-beta.0] - 2026-08-24
 
 Initial beta release of `@auth0/auth0-react-router` — an Auth0 authentication SDK for [React Router v7](https://reactrouter.com/) framework mode applications.
