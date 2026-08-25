@@ -1,0 +1,7 @@
+{
+    "conventionalCommits": true,
+    "files": {
+        ".version": []
+    },
+    "postbump": "npm run docs"
+}
