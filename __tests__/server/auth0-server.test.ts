@@ -297,4 +297,53 @@ describe('HookedStateStore', () => {
 
     expect(inner.delete).toHaveBeenCalledWith('key', expect.any(Object));
   });
+
+  it('forwards claims and storeOptions to inner store deleteByLogoutToken', async () => {
+    const deleteByLogoutToken = vi.fn().mockResolvedValue(undefined);
+    const inner = { ...makeMockInner(), deleteByLogoutToken };
+    const store = new HookedStateStore(inner as never);
+    const claims = { sub: 'auth0|1', sid: 'session-1' };
+    const storeOptions = { request: new Request('http://localhost'), response: new Response() };
+
+    await store.deleteByLogoutToken(claims, storeOptions);
+
+    expect(deleteByLogoutToken).toHaveBeenCalledWith(claims, storeOptions);
+  });
+});
+
+// ─── Auth0Server — sessionStore option ────────────────────────────────────────
+
+function makeMockSessionStore() {
+  return {
+    get: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+    deleteByLogoutToken: vi.fn().mockResolvedValue(undefined)
+  };
+}
+
+describe('Auth0Server — sessionStore option', () => {
+  it('throws when deleteByLogoutToken is called without a sessionStore (stateless)', () => {
+    const auth0 = new Auth0Server(validConfig);
+    expect(() => auth0.stateStore.deleteByLogoutToken({ sub: 'auth0|1' })).toThrow('Stateless Storage');
+  });
+
+  it('does not throw when deleteByLogoutToken is called with a sessionStore (stateful)', async () => {
+    const sessionStore = makeMockSessionStore();
+    const auth0 = new Auth0Server({ ...validConfig, sessionStore });
+
+    await expect(
+      auth0.stateStore.deleteByLogoutToken({ sub: 'auth0|1', sid: 'session-1' })
+    ).resolves.toBeUndefined();
+  });
+
+  it('delegates deleteByLogoutToken claims to the provided sessionStore', async () => {
+    const sessionStore = makeMockSessionStore();
+    const auth0 = new Auth0Server({ ...validConfig, sessionStore });
+    const claims = { sub: 'auth0|1', sid: 'session-1' };
+
+    await auth0.stateStore.deleteByLogoutToken(claims);
+
+    expect(sessionStore.deleteByLogoutToken).toHaveBeenCalledWith(claims, undefined);
+  });
 });

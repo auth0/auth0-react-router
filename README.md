@@ -70,7 +70,7 @@ threading the instance through every call site.
 **Authentication**
 
 - Login, callback, and logout handled server-side with an encrypted JWE session cookie.
-- Back-channel logout so Auth0 can end a user's session from the Dashboard or another app.
+- Back-channel logout so Auth0 can end a user's session from the Dashboard or another app (requires a `sessionStore` — see [EXAMPLES.md](./EXAMPLES.md#back-channel-logout)).
 - `handleAuth` on a splat route registers the full OIDC flow from a single file, or use the
   individual handlers (`handleLogin`, `handleCallback`, `handleLogout`) for custom paths.
 

@@ -4,6 +4,8 @@ export type {
   ResolvedAuth0ServerConfig
 } from './auth0-server.js';
 
+export type { SessionStore, StateData, LogoutTokenClaims } from '@auth0/auth0-server-js';
+
 export { ReactRouterCookieHandler } from './cookie-handler.js';
 export type { StoreOptions } from './cookie-handler.js';
 

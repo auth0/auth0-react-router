@@ -1,9 +1,16 @@
 import {
   ServerClient,
   CookieTransactionStore,
-  StatelessStateStore
+  StatelessStateStore,
+  StatefulStateStore
 } from '@auth0/auth0-server-js';
-import type { StateData, TokenSet as UpstreamTokenSet, LogoutTokenClaims } from '@auth0/auth0-server-js';
+import type {
+  StateData,
+  TokenSet as UpstreamTokenSet,
+  LogoutTokenClaims,
+  StateStore,
+  SessionStore
+} from '@auth0/auth0-server-js';
 import { ConfigurationError } from '../errors/index.js';
 import { ReactRouterCookieHandler } from './cookie-handler.js';
 import type { StoreOptions } from './cookie-handler.js';
@@ -37,6 +44,13 @@ export interface Auth0ServerConfig {
    * sent to the browser.
    */
   onCallback?: (session: Auth0Session) => void | Promise<void>;
+  /**
+   * Custom server-side session store (e.g. Redis, database).
+   * When provided, sessions are stored server-side and the cookie holds only
+   * an encrypted session ID — enabling backchannel logout.
+   * When omitted the SDK defaults to stateless encrypted-cookie sessions.
+   */
+  sessionStore?: SessionStore<StoreOptions>;
 }
 
 /**
@@ -117,7 +131,7 @@ export class HookedStateStore {
   private captured = new WeakMap<Response, Auth0Session>();
 
   constructor(
-    private inner: StatelessStateStore<StoreOptions>,
+    private inner: StateStore<StoreOptions>,
     private beforeSessionSaved?: (session: Auth0Session) => Auth0Session | Promise<Auth0Session>
   ) {}
 
@@ -163,8 +177,8 @@ export class HookedStateStore {
     return this.inner.delete(identifier, storeOptions);
   }
 
-  deleteByLogoutToken(_claims: LogoutTokenClaims, _storeOptions?: StoreOptions) {
-    return this.inner.deleteByLogoutToken();
+  deleteByLogoutToken(claims: LogoutTokenClaims, storeOptions?: StoreOptions) {
+    return this.inner.deleteByLogoutToken(claims, storeOptions);
   }
 
   getCaptured(cookieJar: Response): Auth0Session | null {
@@ -224,11 +238,17 @@ export class Auth0Server {
       cookieHandler
     );
 
-    // Wraps the stateless store to apply beforeSessionSaved and capture session data for onCallback
-    const innerStore = new StatelessStateStore<StoreOptions>(
-      { secret: this._config.secret },
-      cookieHandler
-    );
+    // Use stateful store when a sessionStore is provided (enables backchannel logout),
+    // otherwise fall back to stateless encrypted-cookie sessions.
+    const innerStore = this._options.sessionStore
+      ? new StatefulStateStore<StoreOptions>(
+          { secret: this._config.secret, store: this._options.sessionStore },
+          cookieHandler
+        )
+      : new StatelessStateStore<StoreOptions>(
+          { secret: this._config.secret },
+          cookieHandler
+        );
     this._stateStore = new HookedStateStore(innerStore, this._options.beforeSessionSaved);
 
     // ServerClient is stateless — no network calls happen here
