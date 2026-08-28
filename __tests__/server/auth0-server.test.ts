@@ -346,4 +346,61 @@ describe('Auth0Server — sessionStore option', () => {
 
     expect(sessionStore.deleteByLogoutToken).toHaveBeenCalledWith(claims, undefined);
   });
+
+  it('routes stateStore.set to the provided sessionStore', async () => {
+    const sessionStore = makeMockSessionStore();
+    const auth0 = new Auth0Server({ ...validConfig, sessionStore });
+    const data = { user: { sub: 'auth0|1' }, tokenSets: [], internal: {} };
+    const storeOptions = { request: new Request('http://localhost'), response: new Response() };
+
+    await auth0.stateStore.set('session-id', data as never, false, storeOptions);
+
+    // StatefulStateStore hashes the key internally; assert it was called with any string key
+    expect(sessionStore.set).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ user: data.user })
+    );
+  });
+
+  it('routes stateStore.get to the provided sessionStore (round-trip after set)', async () => {
+    const sessionStore = makeMockSessionStore();
+    const auth0 = new Auth0Server({ ...validConfig, sessionStore });
+    const data = { user: { sub: 'auth0|1' }, tokenSets: [], internal: {} };
+
+    // set writes the session ID into the response cookie
+    const cookieJar = new Response();
+    await auth0.stateStore.set('session-id', data as never, false, {
+      request: new Request('http://localhost'),
+      response: cookieJar
+    });
+    const setCookie = cookieJar.headers.get('Set-Cookie')!;
+
+    // get reads the session ID back from the request cookie
+    await auth0.stateStore.get('session-id', {
+      request: new Request('http://localhost', { headers: { Cookie: setCookie } }),
+      response: new Response()
+    });
+
+    expect(sessionStore.get).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  it('routes stateStore.delete to the provided sessionStore (round-trip after set)', async () => {
+    const sessionStore = makeMockSessionStore();
+    const auth0 = new Auth0Server({ ...validConfig, sessionStore });
+    const data = { user: { sub: 'auth0|1' }, tokenSets: [], internal: {} };
+
+    const cookieJar = new Response();
+    await auth0.stateStore.set('session-id', data as never, false, {
+      request: new Request('http://localhost'),
+      response: cookieJar
+    });
+    const setCookie = cookieJar.headers.get('Set-Cookie')!;
+
+    await auth0.stateStore.delete('session-id', {
+      request: new Request('http://localhost', { headers: { Cookie: setCookie } }),
+      response: new Response()
+    });
+
+    expect(sessionStore.delete).toHaveBeenCalledWith(expect.any(String));
+  });
 });

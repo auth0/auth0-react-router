@@ -11,8 +11,16 @@ import {
   handleAuth,
   stripIdTokenClaims
 } from '../../src/server/handlers.js';
+import { Auth0Server } from '../../src/server/auth0-server.js';
 import { CallbackError } from '../../src/errors/index.js';
-import type { Auth0Server } from '../../src/server/auth0-server.js';
+
+const BASE_CONFIG = {
+  domain: 'test.auth0.com',
+  clientId: 'abc',
+  clientSecret: 'secret',
+  secret: 'a-secret-that-is-at-least-32-characters-long',
+  appBaseUrl: 'http://localhost:3000'
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -815,6 +823,48 @@ describe('handleBackchannelLogout', () => {
     );
 
     const response = await handleBackchannelLogout(auth0, request);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 204 end-to-end when Auth0Server is configured with a sessionStore', async () => {
+    const sessionStore = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      deleteByLogoutToken: vi.fn().mockResolvedValue(undefined)
+    };
+    const auth0 = new Auth0Server({ ...BASE_CONFIG, sessionStore });
+    vi.spyOn(auth0.serverClient, 'handleBackchannelLogout').mockImplementation(
+      async (_token, storeOptions) => {
+        await auth0.stateStore.deleteByLogoutToken({ sub: 'auth0|1' }, storeOptions);
+      }
+    );
+
+    const response = await handleBackchannelLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/backchannel-logout', {
+        formData: { logout_token: 'valid.jwt.token' }
+      })
+    );
+
+    expect(response.status).toBe(204);
+  });
+
+  it('returns 400 end-to-end when Auth0Server has no sessionStore (stateless)', async () => {
+    const auth0 = new Auth0Server(BASE_CONFIG);
+    vi.spyOn(auth0.serverClient, 'handleBackchannelLogout').mockImplementation(
+      async (_token, storeOptions) => {
+        await auth0.stateStore.deleteByLogoutToken({ sub: 'auth0|1' }, storeOptions);
+      }
+    );
+
+    const response = await handleBackchannelLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/backchannel-logout', {
+        formData: { logout_token: 'valid.jwt.token' }
+      })
+    );
 
     expect(response.status).toBe(400);
   });
