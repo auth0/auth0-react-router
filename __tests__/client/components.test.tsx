@@ -229,6 +229,31 @@ describe('RequireRole', () => {
       )
     ).toThrow(InsufficientScopeError);
   });
+
+  it('drops non-string elements from array claim and still grants access for valid string role', () => {
+    const user = createMockUser({ 'https://auth0.com/claims/roles': ['admin', 123] });
+    render(
+      <WithAuth user={user}>
+        <RequireRole role="admin">
+          <span>Admin area</span>
+        </RequireRole>
+      </WithAuth>
+    );
+    expect(screen.getByText('Admin area')).toBeDefined();
+  });
+
+  it('throws InsufficientScopeError when roles claim is an empty string', () => {
+    const user = createMockUser({ 'https://auth0.com/claims/roles': '' });
+    expect(() =>
+      render(
+        <WithAuth user={user}>
+          <RequireRole role="admin">
+            <span>Admin area</span>
+          </RequireRole>
+        </WithAuth>
+      )
+    ).toThrow(InsufficientScopeError);
+  });
 });
 
 // ─── SignedIn / SignedOut / AuthLoading ───────────────────────────────────────

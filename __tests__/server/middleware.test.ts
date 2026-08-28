@@ -416,6 +416,37 @@ describe('defineRouteAuth — role check', () => {
       InsufficientScopeError
     );
   });
+
+  it('drops non-string elements from array claim and still passes for valid string role', async () => {
+    const sessionMixed: Auth0Session = {
+      ...SESSION,
+      user: { sub: 'auth0|1', 'https://auth0.com/claims/roles': ['admin', 123] }
+    };
+    mockGetSession.mockResolvedValue(sessionMixed);
+    const {
+      middleware: [mw]
+    } = defineRouteAuth({ role: 'admin' });
+    const next = makeNext();
+
+    await mw(makeArgs(), next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws InsufficientScopeError when roles claim is an empty string', async () => {
+    const sessionEmptyString: Auth0Session = {
+      ...SESSION,
+      user: { sub: 'auth0|1', 'https://auth0.com/claims/roles': '' }
+    };
+    mockGetSession.mockResolvedValue(sessionEmptyString);
+    const {
+      middleware: [mw]
+    } = defineRouteAuth({ role: 'admin' });
+
+    await expect(mw(makeArgs(), makeNext())).rejects.toBeInstanceOf(
+      InsufficientScopeError
+    );
+  });
 });
 
 // ─── defineRouteAuth — composition with auth0Middleware ───────────────────────
