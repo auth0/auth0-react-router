@@ -436,6 +436,21 @@ describe('handleCallback', () => {
     expect(response.headers.get('Location')).toBe('/');
   });
 
+  it('accepts a valid relative appState.returnTo and redirects to it', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/dashboard' } })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/dashboard');
+  });
+
   it('ignores an absolute options.returnTo and falls back to /', async () => {
     const auth0 = makeAuth0({
       completeInteractiveLogin: vi
@@ -875,6 +890,82 @@ describe('handleLogout', () => {
     await handleLogout(
       auth0,
       makeRequest('http://localhost:3000/auth/logout?returnTo=not-a-url', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a tab-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%09/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a LF-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%0a/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a CR-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%0d/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a tab-backslash returnTo query param variant and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%09%5Cevil.com', {
         method: 'POST'
       })
     );

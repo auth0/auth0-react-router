@@ -238,6 +238,12 @@ export async function handleLogout(
   // Query-string returnTo is validated as a relative path (same rules as login)
   // and resolved against the app origin before being forwarded to Auth0.
   // This prevents open redirects: only paths on the same domain are accepted.
+  //
+  // options.returnTo is intentionally NOT run through isSafeRelativeUrl: logout
+  // returnTo must be an absolute URL allow-listed in the Auth0 dashboard
+  // ("Allowed Logout URLs"). Auth0 rejects anything not on that list, so it is
+  // the enforcement gate here. Unlike login/callback, this value is developer-
+  // supplied at build time, not derived from user-controlled input.
   const appBaseUrl = auth0.config.appBaseUrl ?? new URL(request.url).origin;
   const queryReturnTo = new URL(request.url).searchParams.get('returnTo');
   const returnTo =
