@@ -269,6 +269,100 @@ describe('handleLogin', () => {
     );
   });
 
+  it('ignores a tab-character returnTo (control-character bypass) and falls back to /', async () => {
+    // %09 is a TAB character. After URL-decoding, searchParams.get returns
+    // "/<TAB>/evil.com". Browsers strip the TAB in Location headers producing
+    // "//evil.com" — a protocol-relative open redirect.
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(
+      auth0,
+      makeRequest('http://localhost:3000/auth/login?returnTo=/%09/evil.com')
+    );
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ appState: { returnTo: '/' } }),
+      expect.any(Object)
+    );
+  });
+
+  it('ignores an absolute options.returnTo and falls back to /', async () => {
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(auth0, makeRequest('http://localhost:3000/auth/login'), {
+      returnTo: 'https://evil.com'
+    });
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ appState: { returnTo: '/' } }),
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a LF-character returnTo (control-character bypass) and falls back to /', async () => {
+    // %0a is a LF character. After URL-decoding, searchParams.get returns
+    // "/<LF>/evil.com". The WHATWG URL parser strips the raw LF, producing
+    // "//evil.com" — a protocol-relative open redirect.
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(
+      auth0,
+      makeRequest('http://localhost:3000/auth/login?returnTo=/%0a/evil.com')
+    );
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ appState: { returnTo: '/' } }),
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a CR-character returnTo (control-character bypass) and falls back to /', async () => {
+    // %0d is a CR character, stripped by the WHATWG URL parser in the same
+    // way as TAB and LF.
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(
+      auth0,
+      makeRequest('http://localhost:3000/auth/login?returnTo=/%0d/evil.com')
+    );
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ appState: { returnTo: '/' } }),
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a tab-backslash returnTo variant and falls back to /', async () => {
+    // %09 (TAB) followed by backslash (%5C): the URL parser strips the TAB
+    // and normalises the backslash to /, producing //evil.com.
+    const startInteractiveLogin = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/authorize'));
+    const auth0 = makeAuth0({ startInteractiveLogin });
+
+    await handleLogin(
+      auth0,
+      makeRequest('http://localhost:3000/auth/login?returnTo=/%09%5Cevil.com')
+    );
+
+    expect(startInteractiveLogin).toHaveBeenCalledWith(
+      expect.objectContaining({ appState: { returnTo: '/' } }),
+      expect.any(Object)
+    );
+  });
+
   it('copies Set-Cookie headers from the transaction store onto the redirect', async () => {
     const startInteractiveLogin = vi
       .fn()
@@ -332,6 +426,97 @@ describe('handleCallback', () => {
       completeInteractiveLogin: vi
         .fn()
         .mockResolvedValue({ appState: undefined })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  it('accepts a valid relative appState.returnTo and redirects to it', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/dashboard' } })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/dashboard');
+  });
+
+  it('ignores an absolute options.returnTo and falls back to /', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: undefined })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz'),
+      { returnTo: 'https://evil.com' }
+    );
+
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  it('ignores a tab-character appState.returnTo (control-character bypass) and falls back to /', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/\x09/evil.com' } })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  it('ignores a LF-character appState.returnTo (control-character bypass) and falls back to /', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/\x0a/evil.com' } })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  it('ignores a CR-character appState.returnTo and falls back to /', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/\x0d/evil.com' } })
+    });
+
+    const response = await handleCallback(
+      auth0,
+      makeRequest('http://localhost:3000/auth/callback?code=abc&state=xyz')
+    );
+
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  it('ignores a tab-backslash appState.returnTo variant and falls back to /', async () => {
+    const auth0 = makeAuth0({
+      completeInteractiveLogin: vi
+        .fn()
+        .mockResolvedValue({ appState: { returnTo: '/\x09\\evil.com' } })
     });
 
     const response = await handleCallback(
@@ -705,6 +890,82 @@ describe('handleLogout', () => {
     await handleLogout(
       auth0,
       makeRequest('http://localhost:3000/auth/logout?returnTo=not-a-url', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a tab-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%09/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a LF-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%0a/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a CR-character returnTo query param (control-character bypass) and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%0d/evil.com', {
+        method: 'POST'
+      })
+    );
+
+    expect(logoutFn).toHaveBeenCalledWith(
+      { returnTo: 'http://localhost:3000' },
+      expect.any(Object)
+    );
+  });
+
+  it('ignores a tab-backslash returnTo query param variant and falls back to app origin', async () => {
+    const logoutFn = vi
+      .fn()
+      .mockResolvedValue(new URL('https://test.auth0.com/v2/logout'));
+    const auth0 = makeAuth0({ logout: logoutFn });
+
+    await handleLogout(
+      auth0,
+      makeRequest('http://localhost:3000/auth/logout?returnTo=/%09%5Cevil.com', {
         method: 'POST'
       })
     );

@@ -52,11 +52,22 @@ function drainCookies(cookieJar: Response, target: Headers): void {
 
 /**
  * Returns true only for relative URLs that cannot redirect the user off-site.
- * Rejects absolute URLs (https://evil.com), protocol-relative URLs (//evil.com),
- * and backslash-prefixed URLs (/\evil.com) which browsers normalize to //evil.com.
+ *
+ * Uses the WHATWG URL parser as the validator rather than a block-list. The
+ * parser strips raw control characters (TAB 0x09, LF 0x0A, CR 0x0D) and
+ * normalises backslashes before producing the parsed form, so payloads like
+ * "/<TAB>/evil.com" or "/\evil.com" that bypass simple prefix checks are
+ * caught here. A URL is safe when its parsed origin equals our dummy base,
+ * meaning it resolved as a path rather than as an absolute or
+ * protocol-relative URL with a foreign authority.
  */
 function isSafeRelativeUrl(url: string): boolean {
-  return url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
+  if (!url.startsWith('/')) return false;
+  try {
+    return new URL(url, 'https://x.invalid').origin === 'https://x.invalid';
+  } catch {
+    return false;
+  }
 }
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
@@ -90,11 +101,14 @@ export async function handleLogin(
   const storeOptions = { request, response: cookieJar };
 
   // returnTo: explicit option > query param on the login URL > home
-  // The query param is user-controlled input so we only accept relative paths
-  // to prevent open redirects (e.g. ?returnTo=https://attacker.com).
+  // Both sources are validated as safe relative paths to prevent open redirects
+  // (e.g. options.returnTo misconfigured as an absolute URL, or
+  // ?returnTo=https://attacker.com / ?returnTo=/%09/evil.com from a crafted link).
   const queryReturnTo = new URL(request.url).searchParams.get('returnTo');
   const returnTo =
-    options.returnTo ??
+    (options.returnTo && isSafeRelativeUrl(options.returnTo)
+      ? options.returnTo
+      : null) ??
     (queryReturnTo && isSafeRelativeUrl(queryReturnTo)
       ? queryReturnTo
       : null) ??
@@ -183,7 +197,8 @@ export async function handleCallback(
     if (session) await auth0.onCallback(session);
   }
 
-  const returnTo = appState?.returnTo ?? options.returnTo ?? '/';
+  const candidate = appState?.returnTo ?? options.returnTo ?? '/';
+  const returnTo = isSafeRelativeUrl(candidate) ? candidate : '/';
 
   const headers = new Headers({ Location: returnTo });
   drainCookies(cookieJar, headers);
@@ -223,6 +238,12 @@ export async function handleLogout(
   // Query-string returnTo is validated as a relative path (same rules as login)
   // and resolved against the app origin before being forwarded to Auth0.
   // This prevents open redirects: only paths on the same domain are accepted.
+  //
+  // options.returnTo is intentionally NOT run through isSafeRelativeUrl: logout
+  // returnTo must be an absolute URL allow-listed in the Auth0 dashboard
+  // ("Allowed Logout URLs"). Auth0 rejects anything not on that list, so it is
+  // the enforcement gate here. Unlike login/callback, this value is developer-
+  // supplied at build time, not derived from user-controlled input.
   const appBaseUrl = auth0.config.appBaseUrl ?? new URL(request.url).origin;
   const queryReturnTo = new URL(request.url).searchParams.get('returnTo');
   const returnTo =
