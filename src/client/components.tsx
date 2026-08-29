@@ -43,6 +43,16 @@ export function RequireAuth({ children, returnTo }: RequireAuthProps) {
 
 const DEFAULT_ROLES_CLAIM = 'https://auth0.com/claims/roles';
 
+/**
+ * Normalises a roles claim value to a string array regardless of the shape
+ * emitted by the Auth0 Action. See server/middleware.ts for full rationale.
+ */
+function normalizeRoles(claim: unknown): string[] {
+  if (Array.isArray(claim)) return claim.filter((r): r is string => typeof r === 'string');
+  if (typeof claim === 'string' && claim.length > 0) return [claim];
+  return [];
+}
+
 export interface RequireRoleProps {
   /** The role name (or array of names) the user must have. */
   role: string | string[];
@@ -80,18 +90,11 @@ export function RequireRole({
   // before auth state is known — including users who do have the required role.
   if (isLoading) return null;
 
-  // Error boundaries are a client-only React mechanism. Throwing during SSR
-  // bypasses Auth0ErrorBoundary and surfaces at the framework root error handler.
-  // Return null on the server and defer the role check to the client after hydration.
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   if (!isAuthenticated || !user) {
     throw new InsufficientScopeError('Insufficient permissions.');
   }
 
-  const userRoles = (user[rolesClaim] as string[] | undefined) ?? [];
+  const userRoles = normalizeRoles(user[rolesClaim]);
   const required = Array.isArray(role) ? role : [role];
 
   if (!required.every(r => userRoles.includes(r))) {

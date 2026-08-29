@@ -279,6 +279,22 @@ export { defineRouteHandle } from './route-handle.js';
 const DEFAULT_ROLES_CLAIM = 'https://auth0.com/claims/roles';
 
 /**
+ * Normalises a roles claim value to a string array regardless of the shape
+ * emitted by the Auth0 Action.
+ *
+ * Auth0 Actions can set the claim to a string, an array of strings, or omit it
+ * entirely. Treating it as-is with `Array.prototype.includes` works when it is
+ * an array, but when it is a string `String.prototype.includes` is called
+ * instead — a substring match, not an element match — which is a security
+ * bypass.
+ */
+function normalizeRoles(claim: unknown): string[] {
+  if (Array.isArray(claim)) return claim.filter((r): r is string => typeof r === 'string');
+  if (typeof claim === 'string' && claim.length > 0) return [claim];
+  return [];
+}
+
+/**
  * Creates both the route handle metadata and the enforcement middleware from a
  * single config object. Spread `middleware` onto a layout route to protect the
  * entire subtree; export `handle` so `useMatches()` can identify protected routes.
@@ -343,8 +359,7 @@ export function defineRouteAuth(opts?: DefineRouteAuthOptions): {
         // ── Role check → 403 ─────────────────────────────────────────────────
         if (opts?.role) {
           const rolesClaim = opts.rolesClaim ?? DEFAULT_ROLES_CLAIM;
-          const userRoles =
-            (session.user[rolesClaim] as string[] | undefined) ?? [];
+          const userRoles = normalizeRoles(session.user[rolesClaim]);
           const required = Array.isArray(opts.role) ? opts.role : [opts.role];
 
           if (!required.every(r => userRoles.includes(r))) {
