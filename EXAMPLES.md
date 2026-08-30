@@ -519,6 +519,10 @@ Auth0 can terminate a user session from the Dashboard or another application via
 back-channel logout request. The `handleAuth` splat route handles it automatically on
 `POST /auth/backchannel-logout`.
 
+> **Requirement:** Back-channel logout only works with stateful session storage. You must
+> provide a `sessionStore` to `Auth0Server` — without it the endpoint always returns 400.
+> See the [sessionStore setup](#providing-a-sessionstore) section below.
+
 If you are using individual handlers, register it explicitly:
 
 ```ts
@@ -546,6 +550,55 @@ export const action = async ({ request }) => {
 Register the back-channel logout URL in the Auth0 Dashboard under your application's
 **Settings** → **Back-Channel Logout URI**:
 `https://your-app.com/auth/backchannel-logout`
+
+### Providing a sessionStore
+
+By default the SDK stores sessions in encrypted cookies (stateless). Back-channel logout
+requires stateful storage so the server can look up and delete a session by user ID or
+session ID when Auth0 sends a logout token.
+
+Implement the `SessionStore` interface and pass it to `Auth0Server`:
+
+```ts
+// app/auth0.server.ts
+import { Auth0Server } from '@auth0/auth0-react-router/server';
+import type { SessionStore, StateData } from '@auth0/auth0-react-router/server';
+
+// Example in-memory store — replace with Redis, a database, etc. in production.
+class MySessionStore implements SessionStore<unknown> {
+  private store = new Map<string, StateData>();
+
+  async get(id: string) {
+    return this.store.get(id);
+  }
+
+  async set(id: string, data: StateData) {
+    this.store.set(id, data);
+  }
+
+  async delete(id: string) {
+    this.store.delete(id);
+  }
+
+  async deleteByLogoutToken(claims: { sub?: string; sid?: string }) {
+    for (const [id, data] of this.store) {
+      if (
+        (claims.sid && data.internal?.sid === claims.sid) ||
+        (claims.sub && data.user?.sub === claims.sub)
+      ) {
+        this.store.delete(id);
+      }
+    }
+  }
+}
+
+export const auth0 = new Auth0Server({
+  sessionStore: new MySessionStore(),
+});
+```
+
+With a `sessionStore` configured, `handleBackchannelLogout` returns 204 on success and
+the matching session is deleted from your store immediately.
 
 ## Testing authenticated flows
 
