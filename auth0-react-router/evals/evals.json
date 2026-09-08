@@ -1,0 +1,33 @@
+{
+  "skill_name": "auth0-react-router",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add Auth0 authentication to a React Router v7 application using the @auth0/auth0-react-router SDK.\n\n**Auth0 Credentials:**\n- Domain: `dev-example.auth0.com`\n- Client ID: `abc123def456ghi789jkl012`\n- Client Secret: `sample_secret_def456uvw789`",
+      "expected_output": "Working React Router v7 web app with Auth0 middleware, session management, login/logout, and protected routes",
+      "expectations": [
+        "Auth0 SDK installed via any valid package manager",
+        "Has correct import from @auth0/auth0-react-router package",
+        "Auth0Server initialized with correct constructor pattern",
+        "Auth0Provider wrapper present in root component (required for client-side session hydration)",
+        "Auth middleware route handlers registered (handleAuth or individual handlers)",
+        "Login route or handler present",
+        "Logout route or handler present",
+        "Session management configured (rootAuthLoader or session helpers used)",
+        "Protected route or authentication guard present",
+        "Auth0 domain dev-example.auth0.com written to .env config file",
+        "Client ID abc123def456ghi789jkl012 written to .env config file",
+        "Does not use SPA-only SDK (@auth0/auth0-react or auth0-js) in a server-rendered React Router app",
+        "Client secret not hardcoded in source (must be in .env only)",
+        "Does not store tokens in localStorage",
+        "Correctly integrates Auth0 into React Router v7 with middleware, session, and protected routes",
+        "Uses current SDK version (1.0.0-beta.2) in dependency declaration",
+        "Calls registerAuth0Instance(auth0) to enable standalone session helpers",
+        "AUTH0_SESSION_SECRET env var present (required for JWE cookie encryption, minimum 32 chars)",
+        "Uses React Router splat route pattern for auth callback (auth/* or auth.$.tsx)",
+        "Does not use deprecated Auth0 packages (passport-auth0, express-jwt, nextjs-auth0, Lock)",
+        "Skill-specific advanced patterns present: version declaration, registerAuth0Instance, session secret, or splat route"
+      ]
+    }
+  ]
+}

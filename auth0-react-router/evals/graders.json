@@ -1,0 +1,113 @@
+[
+  {
+    "type": "matches",
+    "pattern": "npm install @auth0/auth0-react-router|yarn add @auth0/auth0-react-router|pnpm add @auth0/auth0-react-router",
+    "description": "Auth0 SDK installed via any valid package manager"
+  },
+  {
+    "type": "matches",
+    "pattern": "from ['\"]@auth0/auth0-react-router(/server|/errors|/types|/testing)?['\"]",
+    "description": "Has correct import from @auth0/auth0-react-router package"
+  },
+  {
+    "type": "contains_any",
+    "values": ["new Auth0Server(", "Auth0Server({"],
+    "description": "Auth0Server initialized with correct constructor pattern"
+  },
+  {
+    "type": "contains",
+    "value": "Auth0Provider",
+    "description": "Auth0Provider wrapper present in root component (required for client-side session hydration)"
+  },
+  {
+    "type": "matches",
+    "pattern": "handleAuth|handleLogin.*handleCallback.*handleLogout",
+    "description": "Auth middleware route handlers registered (handleAuth or individual handlers)"
+  },
+  {
+    "type": "matches",
+    "pattern": "handleLogin|/auth/login|route.*auth",
+    "description": "Login route or handler present"
+  },
+  {
+    "type": "matches",
+    "pattern": "handleLogout|/auth/logout",
+    "description": "Logout route or handler present"
+  },
+  {
+    "type": "matches",
+    "pattern": "rootAuthLoader|AUTH0_SESSION_SECRET|getSession|requireSession",
+    "description": "Session management configured (rootAuthLoader or session helpers used)"
+  },
+  {
+    "type": "matches",
+    "pattern": "requireSession|requireUser|RequireAuth|withAuthenticationRequired|defineRouteAuth",
+    "description": "Protected route or authentication guard present"
+  },
+  {
+    "type": "file_contains",
+    "file_pattern": ".env",
+    "value": "dev-example.auth0.com",
+    "description": "Auth0 domain written to .env config file"
+  },
+  {
+    "type": "file_contains",
+    "file_pattern": ".env",
+    "value": "abc123def456ghi789jkl012",
+    "description": "Client ID written to .env config file"
+  },
+  {
+    "type": "not_contains_any",
+    "values": ["@auth0/auth0-react\"", "@auth0/auth0-react'", "from 'auth0-js'", "from \"auth0-js\""],
+    "description": "Does not use SPA-only SDK (@auth0/auth0-react or auth0-js) in a server-rendered React Router app"
+  },
+  {
+    "type": "not_contains",
+    "value": "AUTH0_CLIENT_SECRET=\"sample_secret",
+    "description": "Client secret not hardcoded in source (must be in .env only)"
+  },
+  {
+    "type": "not_contains",
+    "value": "localStorage.setItem",
+    "description": "Does not store tokens in localStorage"
+  },
+  {
+    "type": "judge",
+    "question": "Does the solution correctly integrate Auth0 into a React Router v7 web application with server-side authentication handlers, session management, and protected routes?",
+    "examples": "PASS: Uses Auth0Server with handleAuth for login/callback/logout routes, uses rootAuthLoader in root.tsx with Auth0Provider, protects routes with requireSession or requireUser.\nFAIL: Uses SPA-style token flow with @auth0/auth0-react instead of server-side sessions.\nFAIL: Stores client secret in source code instead of .env.\nFAIL: Missing Auth0Provider or rootAuthLoader in root.tsx.",
+    "framework": "react-router",
+    "description": "Correctly integrates Auth0 into React Router v7 with middleware, session, and protected routes"
+  },
+  {
+    "type": "matches",
+    "pattern": "auth0-react-router.*1\\.0\\.0-beta\\.2|1\\.0\\.0-beta\\.2.*auth0-react-router|\"@auth0/auth0-react-router\": \"\\^?1\\.0\\.0-beta\\.2\"",
+    "description": "Uses current SDK version (1.0.0-beta.2) in dependency declaration"
+  },
+  {
+    "type": "matches",
+    "pattern": "registerAuth0Instance",
+    "description": "Calls registerAuth0Instance(auth0) to enable standalone session helpers"
+  },
+  {
+    "type": "matches",
+    "pattern": "AUTH0_SESSION_SECRET",
+    "description": "AUTH0_SESSION_SECRET env var present (required for JWE cookie encryption, minimum 32 chars)"
+  },
+  {
+    "type": "matches",
+    "pattern": "/auth/callback|auth/\\*|auth\\.\\$\\.tsx",
+    "description": "Uses React Router splat route pattern for auth callback (auth/* or auth.$.tsx)"
+  },
+  {
+    "type": "not_contains_any",
+    "values": ["passport-auth0", "express-jwt", "@auth0/nextjs-auth0", "auth0-lock"],
+    "description": "Does not use deprecated Auth0 packages (passport-auth0, express-jwt, nextjs-auth0, Lock)"
+  },
+  {
+    "type": "judge",
+    "question": "Check ONLY for these skill-specific advanced patterns (NOT basic SDK usage like handleAuth, Auth0Provider, getSession, SignedIn, SignedOut). Look for at least 2 of: (1) SDK version 1.0.0-beta.2 in a package.json dependency declaration, (2) registerAuth0Instance(auth0) called after Auth0Server instantiation, (3) AUTH0_SESSION_SECRET in .env or referenced in code, (4) /auth/callback or auth/* splat route pattern. These are advanced patterns taught by the skill that are NOT part of standard Auth0 quickstart knowledge. Answer YES only if at least 2 of these advanced patterns are present, NO otherwise.",
+    "examples": "PASS: Uses version 1.0.0-beta.2 AND calls registerAuth0Instance AND has AUTH0_SESSION_SECRET in .env.\nFAIL: Only uses basic handleAuth with no registerAuth0Instance or SESSION_SECRET.",
+    "framework": "react-router",
+    "description": "Skill-specific advanced patterns present: version declaration, registerAuth0Instance, session secret, or splat route"
+  }
+]
